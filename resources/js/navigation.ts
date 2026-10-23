@@ -37,7 +37,6 @@ export const unavailableModules: Record<string, UnavailableModule> = {
     workflows: { title: 'Бизнес-процессы', stage: 'D', description: 'Визуальный конструктор маршрутизации звонков: условия, ветвления, выбор основного и дополнительных чек-листов, публикация версий.' },
     checklists: { title: 'Чек-листы', stage: 'D', description: 'Конструктор версионируемых чек-листов: критерии, веса, обязательность, критические признаки, тестирование на эталонном звонке.' },
     integrations: { title: 'Источники звонков', stage: 'F', description: 'Подключаемые модули Calltouch и телефонии «Лягушка». Подключаются после получения документации и тестового доступа.' },
-    'ai-providers': { title: 'ИИ-провайдеры', stage: 'C', description: 'Настройка облачных сервисов распознавания речи и оценки, ключи, лимиты, тест подключения и статистика вызовов.' },
 };
 
 export const navigation: NavSection[] = [
@@ -58,7 +57,7 @@ export const navigation: NavSection[] = [
             { label: 'Бизнес-процессы', to: '/modules/workflows', permissions: ['workflow.design', 'workflow.publish'], stage: 'D', icon: 'flow' },
             { label: 'Чек-листы', to: '/modules/checklists', permissions: ['checklist.design', 'checklist.publish'], stage: 'D', icon: 'checklist' },
             { label: 'Источники звонков', to: '/modules/integrations', permissions: ['integrations.manage'], stage: 'F', icon: 'plug' },
-            { label: 'ИИ-провайдеры', to: '/modules/ai-providers', permissions: ['ai.manage'], stage: 'C', icon: 'cpu' },
+            { label: 'ИИ-провайдеры', to: '/ai-providers', permissions: ['ai.manage', 'ai.logs.view'], icon: 'cpu' },
         ],
     },
     {

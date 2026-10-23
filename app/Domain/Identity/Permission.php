@@ -43,6 +43,7 @@ enum Permission: string
 
     case IntegrationsManage = 'integrations.manage';
     case AiManage = 'ai.manage';
+    case AiLogsView = 'ai.logs.view';
     case AnalyticsView = 'analytics.view';
     case AnalyticsExport = 'analytics.export';
     case AuditView = 'audit.view';
@@ -57,7 +58,7 @@ enum Permission: string
             self::EvaluationView, self::EvaluationOverride, self::EvaluationFinalize,
             self::ReviewAssign, self::ReviewResolve, self::AppealCreate, self::AppealResolve => 'evaluation',
             self::WorkflowDesign, self::WorkflowPublish, self::ChecklistDesign, self::ChecklistPublish => 'designers',
-            self::IntegrationsManage, self::AiManage => 'integrations',
+            self::IntegrationsManage, self::AiManage, self::AiLogsView => 'integrations',
             self::AnalyticsView, self::AnalyticsExport => 'analytics',
             self::AuditView => 'audit',
         };
@@ -96,6 +97,7 @@ enum Permission: string
             self::ChecklistPublish => 'Публикация чек-листов',
             self::IntegrationsManage => 'Управление интеграциями',
             self::AiManage => 'Управление ИИ-провайдерами',
+            self::AiLogsView => 'Просмотр журнала вызовов ИИ',
             self::AnalyticsView => 'Просмотр аналитики',
             self::AnalyticsExport => 'Выгрузка аналитики',
             self::AuditView => 'Просмотр журнала аудита',
@@ -123,6 +125,7 @@ enum Permission: string
             || in_array($this, [
                 self::CallsView, self::CallsUpload, self::CallsDelete, self::CallsReprocess,
                 self::AudioPlay, self::AudioDownload,
+                self::TranscriptView, self::EvaluationView, self::AiManage, self::AiLogsView,
             ], true);
     }
 }

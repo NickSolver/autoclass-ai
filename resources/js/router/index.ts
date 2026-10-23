@@ -44,6 +44,8 @@ const routes: RouteRecordRaw[] = [
     { path: '/calls/upload', name: 'calls-upload', component: () => import('@/views/calls/CallUploadView.vue'), meta: { title: 'Загрузка звонков', permissions: ['calls.upload'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Загрузка' }] } },
     { path: '/calls/:id(\\d+)', name: 'call', component: () => import('@/views/calls/CallDetailView.vue'), props: (r) => ({ id: Number(r.params.id) }), meta: { title: 'Звонок', permissions: ['calls.view'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Карточка звонка' }] } },
 
+    { path: '/ai-providers', name: 'ai-providers', component: () => import('@/views/ai/AiProvidersView.vue'), meta: { title: 'ИИ-провайдеры', permissions: ['ai.manage', 'ai.logs.view'], breadcrumbs: [{ label: 'Настройка оценки' }, { label: 'ИИ-провайдеры' }] } },
+
     { path: '/modules/:module', name: 'module', component: () => import('@/views/ModuleUnavailableView.vue'), props: true, meta: { title: 'Модуль в разработке' } },
     { path: '/forbidden', name: 'forbidden', component: () => import('@/views/ForbiddenView.vue'), meta: { title: 'Нет доступа' } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/views/NotFoundView.vue'), meta: { title: 'Страница не найдена' } },

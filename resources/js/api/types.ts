@@ -234,7 +234,7 @@ export interface CodeLabel<T extends string = string> {
 }
 
 export type CallStatusCode =
-    | 'received' | 'awaiting_audio' | 'queued' | 'preparing' | 'awaiting_transcription'
+    | 'received' | 'awaiting_audio' | 'queued' | 'preparing' | 'awaiting_transcription' | 'awaiting_evaluation'
     | 'transcribing' | 'classifying' | 'evaluating' | 'completed' | 'failed' | 'excluded';
 
 export interface CallAudio {
@@ -292,6 +292,8 @@ export interface Call {
     normalized?: CallAudio | null;
     attempts?: CallAttempt[];
     created_at: string;
+    review_required: boolean;
+    evaluation?: { score: number | null; provisional_score: number | null; business_status: string; critical_violation: boolean } | null;
     can: { update: boolean; reprocess: boolean; exclude: boolean; play: boolean; download: boolean };
 }
 
@@ -303,6 +305,8 @@ export interface CallSummary {
     failed: number;
     excluded: number;
     needs_employee: number;
+    review_required: number;
+    awaiting_evaluation: number;
 }
 
 export interface UploadSettings {
@@ -311,4 +315,135 @@ export interface UploadSettings {
     max_files_per_batch: number;
     min_duration_seconds: number;
     max_duration_minutes: number;
+}
+
+// --- Этап C: провайдеры ИИ, расшифровка, оценка ---
+
+export type ProviderKindCode = 'asr' | 'llm';
+export type ProviderRoleCode = 'primary' | 'fallback' | 'inactive';
+
+export interface ProviderConfig {
+    id: number;
+    kind: ProviderKindCode;
+    driver: string;
+    external: boolean;
+    name: string;
+    model: string | null;
+    endpoint: string | null;
+    settings: Record<string, string | number | boolean | null>;
+    role: ProviderRoleCode;
+    secret_set: boolean;
+    secret_set_at: string | null;
+    lock_version: number;
+    stats?: {
+        calls_30d: number;
+        errors_30d: number;
+        cost_30d: number | null;
+        avg_duration_ms: number | null;
+        last_call_at: string | null;
+        last_error: { error_message: string; started_at: string } | null;
+    };
+}
+
+export interface ProvidersOverview {
+    data: ProviderConfig[];
+    drivers: Record<ProviderKindCode, { code: string; name: string; external: boolean }[]>;
+    presets: Record<string, { name: string; endpoint: string; model: string }[]>;
+    mock_scenarios: Record<ProviderKindCode, { code: string; name: string }[]>;
+    external_processing: { enabled: boolean; reason: string | null; changed_at: string | null; changed_by: number | null };
+}
+
+export interface ProviderCallLog {
+    id: number;
+    provider: string | null;
+    kind: ProviderKindCode;
+    driver: string;
+    model: string | null;
+    operation: string;
+    call_id: number | null;
+    prompt_version: string | null;
+    started_at: string;
+    duration_ms: number;
+    status: 'ok' | 'error';
+    error_code: string | null;
+    error_message: string | null;
+    attempt: number;
+    audio_seconds: number | null;
+    tokens_in: number | null;
+    tokens_out: number | null;
+    cost: number | null;
+    currency: string;
+}
+
+export interface TranscriptSegment {
+    id: number;
+    start_ms: number;
+    end_ms: number;
+    speaker: string;
+    speaker_role: 'agent' | 'client' | 'unknown';
+    text: string;
+    confidence: number | null;
+}
+
+export interface TranscriptResponse {
+    versions: { version: number; source: string; is_synthetic: boolean; created_at: string }[];
+    current: { version: number; source: string; is_synthetic: boolean; created_at: string; segments: TranscriptSegment[] } | null;
+}
+
+export interface EvidenceItem {
+    type: 'quote' | 'time_range' | string;
+    segment_id: number | null;
+    quote: string | null;
+    start_ms: number | null;
+    end_ms: number | null;
+    speaker: string | null;
+    is_valid: boolean;
+    issue: string | null;
+}
+
+export interface CriterionResultItem {
+    id: number;
+    title: string;
+    weight: number;
+    required: boolean;
+    critical: boolean;
+    status: 'pass' | 'fail' | 'not_applicable' | 'insufficient_data';
+    reason: string | null;
+    confidence: number | null;
+    evidence_valid: boolean;
+    issues: string[];
+    evidence: EvidenceItem[];
+}
+
+export interface EvaluationResultItem {
+    id: number;
+    role: 'primary' | 'additional';
+    checklist: { name: string; version: number; is_demo: boolean };
+    score: number | null;
+    provisional_score: number | null;
+    critical_violation: boolean;
+    business_status: 'full_assessment' | 'human_intervention_required';
+    review_state: string;
+    approval_state: string;
+    summary: string | null;
+    recommendations: string[];
+    risks: string[];
+    issues: string[];
+    criteria: CriterionResultItem[];
+}
+
+export interface AnalysisResponse {
+    runs: { id: number; status: string; driver: string; started_at: string }[];
+    current: {
+        id: number;
+        status: 'running' | 'succeeded' | 'failed';
+        driver: string;
+        prompt_version: string;
+        routing: { role: string; checklist: string; version: number; reason: string }[];
+        started_at: string;
+        finished_at: string | null;
+        error_message: string | null;
+        synthetic: boolean;
+        results: EvaluationResultItem[];
+    } | null;
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\AiProviders\Models\ProviderConfig;
 use App\Domain\Audit\Models\AuditEvent;
 use App\Domain\CallIntake\Models\Call;
 use App\Domain\Identity\Models\User;
@@ -9,8 +10,11 @@ use App\Domain\Organization\Models\CompanyGroup;
 use App\Domain\Organization\Models\Dealership;
 use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\Employee;
+use App\Http\Controllers\Api\V1\AiProviderCallController;
+use App\Http\Controllers\Api\V1\AiProviderController;
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CallAnalysisController;
 use App\Http\Controllers\Api\V1\CallAudioController;
 use App\Http\Controllers\Api\V1\CallController;
 use App\Http\Controllers\Api\V1\CallUploadController;
@@ -49,6 +53,7 @@ Route::bind('employee', $visible(Employee::class, Permission::EmployeesView));
 Route::bind('user', $visible(User::class, Permission::UsersView));
 Route::bind('auditEvent', $visible(AuditEvent::class, Permission::AuditView));
 Route::bind('call', $visible(Call::class, Permission::CallsView));
+Route::bind('provider', fn (string $value) => ProviderConfig::query()->findOrFail((int) $value));
 Route::bind('assignment', fn (string $value) => request()->route('employee')->assignments()->findOrFail((int) $value));
 Route::bind('roleScope', fn (string $value) => request()->route('user')->roleScopes()->findOrFail((int) $value));
 
@@ -116,6 +121,19 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('calls/{call}/audio', CallAudioController::class)->name('calls.audio');
         Route::post('calls/{call}/reprocess', [CallController::class, 'reprocess'])->name('calls.reprocess');
         Route::post('calls/{call}/exclude', [CallController::class, 'exclude'])->name('calls.exclude');
+        Route::get('calls/{call}/transcript', [CallAnalysisController::class, 'transcript'])->name('calls.transcript');
+        Route::get('calls/{call}/analysis', [CallAnalysisController::class, 'analysis'])->name('calls.analysis');
+
+        // Провайдеры ИИ (этап C). Изменения ключей, ролей и разрешения внешней обработки — с повторным кодом MFA.
+        Route::get('ai-providers', [AiProviderController::class, 'index'])->name('ai-providers.index');
+        Route::post('ai-providers', [AiProviderController::class, 'store'])->name('ai-providers.store');
+        Route::patch('ai-providers/{provider}', [AiProviderController::class, 'update'])->name('ai-providers.update');
+        Route::put('ai-providers/{provider}/secret', [AiProviderController::class, 'setSecret'])->middleware('mfa.recent')->name('ai-providers.secret');
+        Route::delete('ai-providers/{provider}/secret', [AiProviderController::class, 'clearSecret'])->name('ai-providers.secret.clear');
+        Route::post('ai-providers/{provider}/role', [AiProviderController::class, 'role'])->middleware('mfa.recent')->name('ai-providers.role');
+        Route::post('ai-providers/{provider}/test', [AiProviderController::class, 'test'])->middleware('throttle:mfa')->name('ai-providers.test');
+        Route::put('ai-settings/external-processing', [AiProviderController::class, 'externalProcessing'])->middleware('mfa.recent')->name('ai-settings.external');
+        Route::get('ai-provider-calls', AiProviderCallController::class)->name('ai-provider-calls.index');
 
         Route::get('audit', [AuditEventController::class, 'index'])->name('audit.index');
         Route::get('audit/{auditEvent}', [AuditEventController::class, 'show'])->name('audit.show');

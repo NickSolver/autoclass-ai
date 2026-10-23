@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { callsApi, employeesApi } from '@/api';
 import { ApiError } from '@/api/http';
-import type { Call, Employee } from '@/api/types';
+import type { AnalysisResponse, Call, Employee, TranscriptResponse } from '@/api/types';
+import EvaluationPanel from '@/components/calls/EvaluationPanel.vue';
+import TranscriptPanel from '@/components/calls/TranscriptPanel.vue';
 import OrgUnitSelect, { type OrgUnitValue } from '@/components/org/OrgUnitSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -36,6 +38,13 @@ async function load(silent = false): Promise<void> {
     error.value = null;
     try {
         call.value = await callsApi.show(props.id);
+        // Расшифровка и оценка — по отдельным правам; без права раздел просто не показывается.
+        const [t, a] = await Promise.all([
+            auth.can('transcript.view') ? callsApi.transcript(props.id).catch(() => null) : null,
+            auth.can('evaluation.view') ? callsApi.analysis(props.id).catch(() => null) : null,
+        ]);
+        transcript.value = t;
+        analysis.value = a;
     } catch (e) {
         error.value = e instanceof ApiError ? e.message : 'Не удалось загрузить звонок.';
     } finally {
@@ -49,7 +58,22 @@ onMounted(load);
 onBeforeUnmount(() => clearTimeout(poll));
 
 const placeLabel = computed(() => [call.value?.org.company, call.value?.org.dealership, call.value?.org.department].filter(Boolean).join(' / '));
-const stepLabels: Record<string, string> = { prepare: 'Подготовка аудио' };
+const stepLabels: Record<string, string> = { prepare: 'Подготовка аудио', transcribe: 'Распознавание речи', evaluate: 'Оценка по чек-листам' };
+
+// --- Расшифровка, оценка и переход к фрагменту записи ---
+const transcript = ref<TranscriptResponse | null>(null);
+const analysis = ref<AnalysisResponse | null>(null);
+const player = ref<HTMLAudioElement | null>(null);
+const highlight = ref<number | null>(null);
+
+function seek(ms: number, segmentId: number | null): void {
+    highlight.value = segmentId;
+    if (segmentId) document.getElementById(`segment-${segmentId}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (player.value) {
+        player.value.currentTime = ms / 1000;
+        void player.value.play().catch(() => undefined);
+    }
+}
 
 // --- Действия ---
 const busy = ref<string | null>(null);
@@ -191,7 +215,7 @@ async function saveEdit(): Promise<void> {
         <div class="grid gap-5 lg:grid-cols-3">
             <div class="space-y-5 lg:col-span-2">
                 <UiCard title="Запись">
-                    <audio v-if="call.can.play" :src="callsApi.audioUrl(call.id)" controls preload="metadata" class="w-full">
+                    <audio v-if="call.can.play" ref="player" :src="callsApi.audioUrl(call.id)" controls preload="metadata" class="w-full">
                         Браузер не поддерживает воспроизведение.
                     </audio>
                     <p v-else class="text-[13px] text-muted">Нет права прослушивать записи.</p>
@@ -203,15 +227,13 @@ async function saveEdit(): Promise<void> {
                     </dl>
                 </UiCard>
 
-                <UiCard title="Расшифровка и оценка">
-                    <div class="flex items-start gap-3 text-[13px] text-muted">
-                        <AppIcon name="lock" class="mt-0.5" />
-                        <p>
-                            Распознавание речи и оценка по чек-листам ещё не подключены (этапы C и D).
-                            <template v-if="call.normalized">Запись уже подготовлена к распознаванию: моно, {{ (call.normalized.sample_rate ?? 0) / 1000 }} кГц.</template>
-                        </p>
-                    </div>
-                </UiCard>
+                <UiAlert v-if="call.status.code === 'awaiting_transcription' || call.status.code === 'awaiting_evaluation'" tone="info">
+                    {{ call.status.code === 'awaiting_transcription' ? 'Провайдер распознавания речи не включён' : 'Провайдер оценки не включён' }} —
+                    звонок ждёт этого шага. После настройки в разделе «ИИ-провайдеры» нажмите «Обработать повторно».
+                </UiAlert>
+
+                <EvaluationPanel v-if="analysis" :analysis="analysis" @seek="seek" />
+                <TranscriptPanel v-if="transcript" :transcript="transcript" :highlight="highlight" @seek="(ms) => seek(ms, null)" />
 
                 <UiCard title="История обработки" :padded="false">
                     <p v-if="!call.attempts?.length" class="px-5 py-4 text-[13px] text-muted">Обработка ещё не начиналась.</p>

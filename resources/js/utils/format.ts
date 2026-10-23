@@ -61,6 +61,11 @@ const auditActions: Record<string, string> = {
     'auth.mfa_recovery_codes_regenerated': 'Выпущены новые резервные коды',
     'auth.mfa_device_trusted': 'Устройство отмечено доверенным',
     'auth.mfa_devices_forgotten': 'Доверенные устройства удалены',
+    'provider_config.created': 'Добавлен ИИ-провайдер',
+    'provider_config.updated': 'Изменён ИИ-провайдер',
+    'provider_config.secret_set': 'Задан ключ API провайдера',
+    'provider_config.secret_cleared': 'Удалён ключ API провайдера',
+    'ai.external_processing_changed': 'Изменено разрешение внешней обработки',
     'call.uploaded': 'Загружен звонок',
     'call.updated': 'Изменены сведения звонка',
     'call.excluded': 'Звонок исключён из обработки',
@@ -124,6 +129,20 @@ export type StatusTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 export function callStatusTone(code: string): StatusTone {
     if (code === 'failed') return 'danger';
     if (code === 'completed') return 'success';
-    if (code === 'excluded' || code === 'awaiting_transcription') return 'neutral';
+    if (code === 'excluded' || code === 'awaiting_transcription' || code === 'awaiting_evaluation') return 'neutral';
     return 'info';
 }
+
+/** Таймкод мм:сс для расшифровки. */
+export function formatTimecode(ms: number | null | undefined): string {
+    if (ms === null || ms === undefined) return '—';
+    const total = Math.floor(ms / 1000);
+    return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+export const criterionStatusLabels: Record<string, string> = {
+    pass: 'Выполнено',
+    fail: 'Не выполнено',
+    not_applicable: 'Неприменимо',
+    insufficient_data: 'Недостаточно данных',
+};

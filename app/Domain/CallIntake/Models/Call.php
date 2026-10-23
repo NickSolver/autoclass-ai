@@ -6,6 +6,7 @@ use App\Domain\Audio\Models\AudioFile;
 use App\Domain\CallIntake\AttributionStatus;
 use App\Domain\CallIntake\CallDirection;
 use App\Domain\CallIntake\CallStatus;
+use App\Domain\Evaluation\Models\EvaluationResult;
 use App\Domain\Identity\Models\User;
 use App\Domain\Organization\Concerns\HasOrgScope;
 use App\Domain\Organization\Models\Company;
@@ -46,6 +47,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $note
  * @property CallStatus $status
  * @property ?Carbon $status_changed_at
+ * @property bool $review_required
  * @property ?string $last_error
  * @property ?string $excluded_reason
  * @property ?Carbon $excluded_at
@@ -86,6 +88,7 @@ class Call extends Model
             'excluded_at' => 'datetime',
             'occurred_at' => 'datetime',
             'duration_ms' => 'integer',
+            'review_required' => 'boolean',
         ];
     }
 
@@ -147,6 +150,13 @@ class Call extends Model
     public function normalized(): HasOne
     {
         return $this->hasOne(AudioFile::class)->where('kind', AudioFile::NORMALIZED);
+    }
+
+    /** Результат основного чек-листа из последнего анализа. */
+    /** @return HasOne<EvaluationResult, $this> */
+    public function primaryEvaluation(): HasOne
+    {
+        return $this->hasOne(EvaluationResult::class)->ofMany(['id' => 'max'], fn (Builder $q) => $q->where('role', 'primary'));
     }
 
     /** @return HasMany<CallProcessingAttempt, $this> */

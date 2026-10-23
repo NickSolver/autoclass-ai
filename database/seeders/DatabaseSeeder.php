@@ -9,6 +9,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RoleSeeder::class);
+        $this->call(DemoChecklistSeeder::class);
 
         // Демоданные — только вне production и только синтетические.
         if (! app()->isProduction()) {

@@ -20,9 +20,9 @@ use Illuminate\Validation\Rule;
 
 class CallController extends Controller
 {
-    private const LIST_RELATIONS = ['original', 'duplicateOf'];
+    private const LIST_RELATIONS = ['original', 'duplicateOf', 'primaryEvaluation'];
 
-    private const DETAIL_RELATIONS = ['source', 'original', 'normalized', 'attempts', 'uploader', 'duplicateOf'];
+    private const DETAIL_RELATIONS = ['source', 'original', 'normalized', 'attempts', 'uploader', 'duplicateOf', 'primaryEvaluation'];
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -59,6 +59,8 @@ class CallController extends Controller
             'failed' => $sum([CallStatus::Failed]),
             'excluded' => $sum([CallStatus::Excluded]),
             'needs_employee' => $needsEmployee,
+            'review_required' => $this->filtered($request, withStatus: false)->where('review_required', true)->where('status', '!=', CallStatus::Excluded)->count(),
+            'awaiting_evaluation' => $sum([CallStatus::AwaitingEvaluation]),
         ]);
     }
 
@@ -101,6 +103,7 @@ class CallController extends Controller
             'department_id' => ['sometimes', 'nullable', 'integer'],
             'employee_id' => ['sometimes', 'nullable', 'integer'],
             'needs_employee' => ['sometimes', 'boolean'],
+            'review_required' => ['sometimes', 'boolean'],
             'from' => ['sometimes', 'nullable', 'date'],
             'to' => ['sometimes', 'nullable', 'date'],
         ]);
@@ -120,6 +123,7 @@ class CallController extends Controller
             ->when($f['department_id'] ?? null, fn (Builder $q, int $v) => $q->where('department_id', $v))
             ->when($f['employee_id'] ?? null, fn (Builder $q, int $v) => $q->where('employee_id', $v))
             ->when($request->boolean('needs_employee'), fn (Builder $q) => $q->where('attribution_status', AttributionStatus::NeedsEmployee))
+            ->when($request->boolean('review_required'), fn (Builder $q) => $q->where('review_required', true))
             ->when($f['from'] ?? null, fn (Builder $q, string $v) => $q->where('occurred_at', '>=', Carbon::parse($v)->startOfDay()))
             ->when($f['to'] ?? null, fn (Builder $q, string $v) => $q->where('occurred_at', '<=', strlen($v) === 10 ? Carbon::parse($v)->endOfDay() : Carbon::parse($v)));
     }

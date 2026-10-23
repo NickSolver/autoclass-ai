@@ -1,5 +1,10 @@
 import { http } from './http';
 import type {
+    AnalysisResponse,
+    ProviderCallLog,
+    ProviderConfig,
+    ProvidersOverview,
+    TranscriptResponse,
     AuditEvent,
     Call,
     CallSummary,
@@ -146,6 +151,22 @@ export const callsApi = {
         });
         return response.data;
     },
+    transcript: (id: number, version?: number) => get<TranscriptResponse>(`/calls/${id}/transcript`, { version }),
+    analysis: (id: number, run?: number) => get<AnalysisResponse>(`/calls/${id}/analysis`, { run }),
     /** Адрес записи: прослушивание идёт через API с проверкой прав, без публичных ссылок. */
     audioUrl: (id: number, download = false) => `/api/v1/calls/${id}/audio${download ? '?download=1' : ''}`,
+};
+
+export const aiApi = {
+    overview: () => get<ProvidersOverview>('/ai-providers'),
+    create: (body: Payload) => post<ProviderConfig>('/ai-providers', body),
+    update: (id: number, body: Payload) => patch<ProviderConfig>(`/ai-providers/${id}`, body),
+    /** Ключ передаётся только на сервер и никогда не возвращается. */
+    setSecret: async (id: number, secret: string) => (await http.put<ProviderConfig>(`/ai-providers/${id}/secret`, { secret })).data,
+    clearSecret: (id: number) => del<ProviderConfig>(`/ai-providers/${id}/secret`),
+    setRole: (id: number, role: string) => post<ProviderConfig>(`/ai-providers/${id}/role`, { role }),
+    test: (id: number) => post<{ ok: boolean; message: string }>(`/ai-providers/${id}/test`),
+    setExternalProcessing: async (enabled: boolean, reason: string) =>
+        (await http.put<ProvidersOverview['external_processing']>('/ai-settings/external-processing', { enabled, reason })).data,
+    calls: (query?: Query) => get<Paginated<ProviderCallLog>>('/ai-provider-calls', query),
 };

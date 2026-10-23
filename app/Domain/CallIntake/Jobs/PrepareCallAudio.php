@@ -10,6 +10,7 @@ use App\Domain\CallIntake\CallStatus;
 use App\Domain\CallIntake\Exceptions\PermanentFailure;
 use App\Domain\CallIntake\Models\Call;
 use App\Domain\CallIntake\Models\CallProcessingAttempt;
+use App\Domain\CallIntake\Services\CallPipeline;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -100,8 +101,8 @@ final class PrepareCallAudio implements ShouldBeUnique, ShouldQueue
             );
 
             $attempt->update(['status' => CallProcessingAttempt::SUCCEEDED, 'finished_at' => now()]);
-            // Распознавание (этап C) не подключено — звонок ждёт его, а не изображает обработку.
-            $call->transitionTo(CallStatus::AwaitingTranscription);
+            // Дальше — распознавание, если провайдер включён; иначе звонок ждёт его.
+            app(CallPipeline::class)->afterPrepared($call);
         } catch (Throwable $e) {
             $permanent = $e instanceof PermanentFailure;
             $message = Str::limit(str_replace([$workDir, storage_path()], '', $e->getMessage()), 490);

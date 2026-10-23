@@ -51,6 +51,14 @@ class CallResource extends JsonResource
             'uploader' => $this->whenLoaded('uploader', fn () => $this->uploader ? ['id' => $this->uploader->id, 'name' => $this->uploader->name] : null),
             'original' => $this->whenLoaded('original', fn () => $this->original ? $this->audio($this->original) : null),
             'normalized' => $this->whenLoaded('normalized', fn () => $this->normalized ? $this->audio($this->normalized) : null),
+            'review_required' => $this->review_required,
+            // Оценка основного чек-листа — только тем, кто видит оценки этого звонка.
+            'evaluation' => $this->whenLoaded('primaryEvaluation', fn () => $this->primaryEvaluation && $this->isVisibleTo($actor, Permission::EvaluationView) ? [
+                'score' => $this->primaryEvaluation->score,
+                'provisional_score' => $this->primaryEvaluation->provisional_score,
+                'business_status' => $this->primaryEvaluation->business_status,
+                'critical_violation' => $this->primaryEvaluation->critical_violation,
+            ] : null),
             'attempts' => $this->whenLoaded('attempts', fn () => $this->attempts->map(fn (CallProcessingAttempt $a) => [
                 'id' => $a->id,
                 'step' => $a->step,

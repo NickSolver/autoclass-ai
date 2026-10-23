@@ -7,8 +7,10 @@ use App\Domain\Audit\Models\AuditEvent;
 use App\Domain\CallIntake\Models\Call;
 use App\Domain\CallIntake\Policies\CallPolicy;
 use App\Domain\Identity\Access\AccessResolver;
+use App\Domain\Identity\Access\Authorizer;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
+use App\Domain\Identity\Permission;
 use App\Domain\Identity\Policies\RolePolicy;
 use App\Domain\Identity\Policies\UserPolicy;
 use App\Domain\Organization\Models\Company;
@@ -63,6 +65,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Employee::class, EmployeePolicy::class);
         Gate::policy(AuditEvent::class, AuditEventPolicy::class);
         Gate::policy(Call::class, CallPolicy::class);
+        // Провайдеры ИИ глобальны: управление и журнал — только с правом на уровне группы.
+        Gate::define('ai.manage', fn (User $u) => app(Authorizer::class)->hasGroupLevel($u, Permission::AiManage));
+        Gate::define('ai.logs', fn (User $u) => app(Authorizer::class)->hasGroupLevel($u, Permission::AiLogsView));
 
     }
 }

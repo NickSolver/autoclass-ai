@@ -27,6 +27,7 @@ const list = usePaginatedList(callsApi.list, {
     from: '',
     to: '',
     needs_employee: route.query.needs_employee === '1' ? 1 : ('' as 1 | ''),
+    review_required: route.query.review_required === '1' ? 1 : ('' as 1 | ''),
 });
 const companies = ref<Company[]>([]);
 const summary = ref<CallSummary | null>(null);
@@ -43,6 +44,11 @@ onMounted(async () => {
     companies.value = (await orgApi.companies.list({ per_page: 100 }).catch(() => ({ data: [] }))).data;
 });
 
+const reviewRequired = computed({
+    get: () => list.filters.review_required === 1,
+    set: (v: boolean) => (list.filters.review_required = v ? 1 : ''),
+});
+
 const needsEmployee = computed({
     get: () => list.filters.needs_employee === 1,
     set: (v: boolean) => (list.filters.needs_employee = v ? 1 : ''),
@@ -52,6 +58,8 @@ const statusOptions = [
     { value: '', label: 'Все статусы' },
     { value: 'in_progress', label: 'В обработке' },
     { value: 'awaiting_transcription', label: 'Ожидает распознавания' },
+    { value: 'awaiting_evaluation', label: 'Ожидает оценки' },
+    { value: 'completed', label: 'Готово' },
     { value: 'failed', label: 'Ошибка обработки' },
     { value: 'excluded', label: 'Исключён' },
 ];
@@ -63,6 +71,7 @@ const columns = [
     { key: 'employee', label: 'Сотрудник' },
     { key: 'direction', label: 'Направление', class: 'w-28' },
     { key: 'duration', label: 'Длит.', class: 'w-20' },
+    { key: 'score', label: 'Оценка', class: 'w-28' },
     { key: 'status', label: 'Статус', class: 'w-48' },
 ];
 </script>
@@ -74,11 +83,12 @@ const columns = [
         </template>
     </PageHeader>
 
-    <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="mb-5 grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
         <StatTile label="Всего звонков" :value="summary?.total ?? null" icon="phone" />
         <StatTile label="В обработке" :value="summary?.in_progress ?? null" icon="clock" />
-        <StatTile label="Ожидают распознавания" :value="summary?.awaiting_transcription ?? null" icon="check" tone="green" />
-        <StatTile label="Ошибки обработки" :value="summary?.failed ?? null" icon="alert" :tone="summary?.failed ? 'red' : 'blue'" />
+        <StatTile label="Ожидают распознавания" :value="summary?.awaiting_transcription ?? null" icon="clock" />
+        <StatTile label="Оценено" :value="summary?.completed ?? null" icon="check" tone="green" />
+        <StatTile label="Требуют проверки" :value="summary?.review_required ?? null" icon="inbox" :tone="summary?.review_required ? 'amber' : 'blue'" />
         <StatTile label="Без сотрудника" :value="summary?.needs_employee ?? null" icon="user" :tone="summary?.needs_employee ? 'amber' : 'blue'" />
     </div>
 
@@ -91,6 +101,7 @@ const columns = [
             <UiInput v-model="list.filters.from" type="date" label="С" class="w-40" />
             <UiInput v-model="list.filters.to" type="date" label="По" class="w-40" />
             <UiCheckbox v-model="needsEmployee" label="Требует сопоставления" class="pb-2" />
+            <UiCheckbox v-model="reviewRequired" label="Требует проверки" class="pb-2" />
         </div>
         <DataTable
             :columns="columns"
@@ -119,6 +130,14 @@ const columns = [
             </template>
             <template #cell-direction="{ row }">{{ row.direction.label }}</template>
             <template #cell-duration="{ row }">{{ formatDuration(row.duration_ms) }}</template>
+            <template #cell-score="{ row }">
+                <template v-if="row.evaluation">
+                    <span v-if="row.evaluation.score !== null" class="text-[15px] font-bold">{{ row.evaluation.score }}</span>
+                    <UiBadge v-else tone="warning">на проверке</UiBadge>
+                    <UiBadge v-if="row.evaluation.critical_violation" tone="danger" class="mt-1">критич.</UiBadge>
+                </template>
+                <span v-else class="text-muted">—</span>
+            </template>
             <template #cell-status="{ row }">
                 <UiBadge :tone="callStatusTone(row.status.code)">{{ row.status.label }}</UiBadge>
                 <UiBadge v-if="row.duplicate_of" tone="warning" class="mt-1">дубль</UiBadge>
