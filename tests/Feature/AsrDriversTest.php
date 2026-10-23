@@ -270,6 +270,7 @@ class AsrDriversTest extends TestCase
         $this->assertTrue($drivers['yandex']['available']);
         $this->assertFalse($drivers['salute']['available']);
         $this->assertNotEmpty($drivers['mts']['reason']);
+        $this->assertArrayNotHasKey('google', $drivers->all(), 'Google скрыт');
     }
 
     #[Test]

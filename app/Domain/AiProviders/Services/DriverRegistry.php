@@ -63,12 +63,13 @@ final class DriverRegistry
         ],
     ];
 
-    /** Сервисы, которые ждут документации или доступа, с причиной. */
+    /** Сервисы, которые ждут документации или доступа, с причиной. hidden — не показывать в интерфейсе. */
     private const PLANNED = [
         'salute' => ['name' => 'SaluteSpeech (Сбер)', 'kind' => 'asr', 'reason' => 'Описание REST API распознавания файлов недоступно из сети портала (в официальном репозитории — только потоковый gRPC). Нужны документация и тестовый доступ.'],
         'mts' => ['name' => 'МТС Audiogram', 'kind' => 'asr', 'reason' => 'Публичной спецификации API нет. Нужны документация и тестовый доступ от МТС AI.'],
         'speechpro' => ['name' => 'ЦРТ (Центр речевых технологий)', 'kind' => 'asr', 'reason' => 'Публично доступен только потоковый gRPC в статусе beta (2022); актуальная документация недоступна. Нужны документация и доступ.'],
-        'google' => ['name' => 'Google Speech-to-Text', 'kind' => 'asr', 'reason' => 'Синхронное распознавание — только до 1 минуты; длинные звонки требуют Google Cloud Storage. Нужен проект Google Cloud.'],
+        // Скрыт по решению заказчика 24.10.2026 (данные за рубеж, нужен Google Cloud Storage); запись сохранена.
+        'google' => ['name' => 'Google Speech-to-Text', 'kind' => 'asr', 'hidden' => true, 'reason' => 'Синхронное распознавание — только до 1 минуты; длинные звонки требуют Google Cloud Storage. Нужен проект Google Cloud.'],
     ];
 
     /** Готовые настройки для известных сервисов (адрес и модель; ключ и тарифы — администратор). */
@@ -94,7 +95,7 @@ final class DriverRegistry
             }
         }
         foreach (self::PLANNED as $code => $p) {
-            if ($p['kind'] === $kind->value) {
+            if ($p['kind'] === $kind->value && ! ($p['hidden'] ?? false)) {
                 $out[] = ['code' => $code, 'name' => $p['name'], 'external' => true, 'available' => false, 'reason' => $p['reason']];
             }
         }
