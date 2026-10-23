@@ -10,6 +10,7 @@
         "bacon/bacon-qr-code": "^3.1",
         "dedoc/scramble": "^0.13.49",
         "laravel/framework": "^13.17",
+        "laravel/horizon": "^5.50",
         "laravel/tinker": "^3.0",
         "pragmarx/google2fa": "^9.1"
     },

@@ -34,6 +34,8 @@ final class RoleTemplates
                     Permission::EmployeesView, Permission::EmployeesManage,
                     Permission::WorkflowDesign, Permission::ChecklistDesign,
                     Permission::AuditView,
+                    // Приём звонков в своей компании (этап B).
+                    Permission::CallsUpload, Permission::CallsReprocess, Permission::CallsDelete, Permission::AudioDownload,
                     // Права ролей, которые администратор компании назначает в своей области:
                     // выдать роль можно, только обладая всеми её правами (ADR-0001, п. 5).
                     Permission::CallsView, Permission::AudioPlay, Permission::TranscriptView, Permission::TranscriptEdit,

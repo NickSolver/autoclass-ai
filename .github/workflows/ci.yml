@@ -31,8 +31,10 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql, mbstring, bcmath, intl, zip
+          extensions: pdo_mysql, mbstring, bcmath, intl, zip, pcntl, redis
           coverage: none
+      - name: FFmpeg (проверка и подготовка аудио в тестах этапа B)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: cp .env.example .env && php artisan key:generate
       - name: Code style (Pint)

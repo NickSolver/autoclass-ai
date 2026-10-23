@@ -61,6 +61,12 @@ const auditActions: Record<string, string> = {
     'auth.mfa_recovery_codes_regenerated': 'Выпущены новые резервные коды',
     'auth.mfa_device_trusted': 'Устройство отмечено доверенным',
     'auth.mfa_devices_forgotten': 'Доверенные устройства удалены',
+    'call.uploaded': 'Загружен звонок',
+    'call.updated': 'Изменены сведения звонка',
+    'call.excluded': 'Звонок исключён из обработки',
+    'call.reprocess_requested': 'Запущена повторная обработка',
+    'call.audio_downloaded': 'Скачана запись звонка',
+    'call.audio_played': 'Прослушана запись звонка',
     'user.created': 'Создан пользователь',
     'user.updated': 'Изменён пользователь',
     'user.disabled': 'Пользователь отключён',
@@ -93,4 +99,31 @@ export function auditActionLabel(action: string): string {
 
 export function scopeLabel(type: ScopeTypeCode): string {
     return scopeTypeLabels[type];
+}
+
+/** Длительность мм:сс или ч:мм:сс. */
+export function formatDuration(ms: number | null | undefined): string {
+    if (ms === null || ms === undefined) return '—';
+    const total = Math.round(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = String(total % 60).padStart(2, '0');
+    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
+}
+
+export function formatBytes(bytes: number | null | undefined): string {
+    if (bytes === null || bytes === undefined) return '—';
+    if (bytes < 1024) return `${bytes} Б`;
+    if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(0)} КБ`;
+    return `${(bytes / 1024 ** 2).toFixed(1).replace('.', ',')} МБ`;
+}
+
+export type StatusTone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+
+/** Цвет статуса звонка: обработка — синий, ожидание следующего этапа — серый, ошибка — красный. */
+export function callStatusTone(code: string): StatusTone {
+    if (code === 'failed') return 'danger';
+    if (code === 'completed') return 'success';
+    if (code === 'excluded' || code === 'awaiting_transcription') return 'neutral';
+    return 'info';
 }

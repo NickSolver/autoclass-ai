@@ -40,6 +40,10 @@ const routes: RouteRecordRaw[] = [
     { path: '/roles/:id(\\d+|new)', name: 'role', component: () => import('@/views/roles/RoleDetailView.vue'), props: (r) => ({ id: r.params.id === 'new' ? null : Number(r.params.id) }), meta: { title: 'Роль', permissions: ['roles.manage', 'users.create', 'users.update'], breadcrumbs: [access, { label: 'Роли и права', to: '/roles' }, { label: 'Роль' }] } },
     { path: '/audit', name: 'audit', component: () => import('@/views/audit/AuditView.vue'), meta: { title: 'Журнал аудита', permissions: ['audit.view'], breadcrumbs: [access, { label: 'Журнал аудита' }] } },
 
+    { path: '/calls', name: 'calls', component: () => import('@/views/calls/CallsView.vue'), meta: { title: 'Звонки', permissions: ['calls.view'], breadcrumbs: [{ label: 'Звонки' }] } },
+    { path: '/calls/upload', name: 'calls-upload', component: () => import('@/views/calls/CallUploadView.vue'), meta: { title: 'Загрузка звонков', permissions: ['calls.upload'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Загрузка' }] } },
+    { path: '/calls/:id(\\d+)', name: 'call', component: () => import('@/views/calls/CallDetailView.vue'), props: (r) => ({ id: Number(r.params.id) }), meta: { title: 'Звонок', permissions: ['calls.view'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Карточка звонка' }] } },
+
     { path: '/modules/:module', name: 'module', component: () => import('@/views/ModuleUnavailableView.vue'), props: true, meta: { title: 'Модуль в разработке' } },
     { path: '/forbidden', name: 'forbidden', component: () => import('@/views/ForbiddenView.vue'), meta: { title: 'Нет доступа' } },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/views/NotFoundView.vue'), meta: { title: 'Страница не найдена' } },

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Domain\Audit\AuditEventPolicy;
 use App\Domain\Audit\Models\AuditEvent;
+use App\Domain\CallIntake\Models\Call;
+use App\Domain\CallIntake\Policies\CallPolicy;
 use App\Domain\Identity\Access\AccessResolver;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
@@ -48,6 +50,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('password-reset-confirm', fn (Request $r) => Limit::perMinute(10)->by('pwreset-confirm:'.$r->ip()));
         RateLimiter::for('password-change', fn (Request $r) => Limit::perMinute(10)->by('pwchange:'.$byUserOrIp($r)));
         // Запросы к эндпоинтам MFA; неверные коды дополнительно ограничены в MfaService (5 в минуту).
+        // Загрузка записей: пакет до calls.max_files_per_batch файлов, с запасом на повторы.
+        RateLimiter::for('uploads', fn (Request $r) => Limit::perMinute(120)->by('uploads:'.$byUserOrIp($r)));
         RateLimiter::for('mfa', fn (Request $r) => Limit::perMinute(30)->by('mfa:'.$byUserOrIp($r)));
 
         Gate::policy(User::class, UserPolicy::class);
@@ -58,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Department::class, OrgUnitPolicy::class);
         Gate::policy(Employee::class, EmployeePolicy::class);
         Gate::policy(AuditEvent::class, AuditEventPolicy::class);
+        Gate::policy(Call::class, CallPolicy::class);
 
     }
 }

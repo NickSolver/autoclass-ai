@@ -27,6 +27,7 @@ class ResponseShapeTest extends TestCase
             'employees' => ['/api/v1/employees', true],
             'users' => ['/api/v1/users', true],
             'audit' => ['/api/v1/audit', true],
+            'calls' => ['/api/v1/calls', true],
         ];
     }
 

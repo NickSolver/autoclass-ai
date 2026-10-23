@@ -20,6 +20,8 @@ export class ApiError extends Error {
         public readonly status: number,
         public readonly errors: ValidationErrors = {},
         public readonly code?: string,
+        /** Тело ответа сервера — для ошибок с подробностями (например, дубль записи). */
+        public readonly data: Record<string, unknown> = {},
     ) {
         super(message);
     }
@@ -89,7 +91,7 @@ http.interceptors.response.use(
         // Для 429 из ограничителя входа сервер отдаёт осмысленное сообщение в errors.
         const firstFieldError = data?.errors ? Object.values(data.errors)[0]?.[0] : undefined;
         const message = status === 429 && firstFieldError ? firstFieldError : messageFor(status, status >= 500 ? undefined : data?.message);
-        const apiError = new ApiError(message, status, data?.errors ?? {}, data?.code);
+        const apiError = new ApiError(message, status, data?.errors ?? {}, data?.code, (data ?? {}) as Record<string, unknown>);
         listeners.forEach((l) => l(apiError));
         return Promise.reject(apiError);
     },

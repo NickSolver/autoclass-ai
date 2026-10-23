@@ -19,7 +19,7 @@ export default tseslint.config(
             'vue/max-attributes-per-line': 'off',
             'vue/singleline-html-element-content-newline': 'off',
             'vue/html-self-closing': ['warn', { html: { void: 'always', normal: 'never', component: 'always' } }],
-            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+            '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
         },
     },
 );

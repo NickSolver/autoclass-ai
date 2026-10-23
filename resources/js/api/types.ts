@@ -227,3 +227,88 @@ export interface SessionInfo {
     last_activity: string;
     is_current: boolean;
 }
+
+export interface CodeLabel<T extends string = string> {
+    code: T;
+    label: string;
+}
+
+export type CallStatusCode =
+    | 'received' | 'awaiting_audio' | 'queued' | 'preparing' | 'awaiting_transcription'
+    | 'transcribing' | 'classifying' | 'evaluating' | 'completed' | 'failed' | 'excluded';
+
+export interface CallAudio {
+    name: string | null;
+    format: string;
+    size_bytes: number;
+    duration_ms: number;
+    codec: string | null;
+    sample_rate: number | null;
+    channels: number | null;
+    bit_rate: number | null;
+    sha256: string;
+}
+
+export interface CallAttempt {
+    id: number;
+    step: string;
+    attempt: number;
+    status: 'running' | 'succeeded' | 'failed';
+    started_at: string;
+    finished_at: string | null;
+    error_code: string | null;
+    error_message: string | null;
+}
+
+export interface Call {
+    id: number;
+    source?: { code: string; name: string };
+    status: CodeLabel<CallStatusCode>;
+    status_changed_at: string | null;
+    direction: CodeLabel<'incoming' | 'outgoing' | 'unknown'>;
+    started_at: string | null;
+    started_at_tz: string | null;
+    occurred_at: string;
+    duration_ms: number | null;
+    company_id: number;
+    dealership_id: number | null;
+    department_id: number | null;
+    employee_id: number | null;
+    attribution_status: 'resolved' | 'needs_employee';
+    org: {
+        company: string | null;
+        dealership: string | null;
+        department: string | null;
+        employee: string | null;
+        employee_position: string | null;
+        captured_at: string | null;
+    };
+    note: string | null;
+    last_error: string | null;
+    excluded: { at: string; reason: string | null } | null;
+    duplicate_of: { id: number | null } | null;
+    uploader?: { id: number; name: string } | null;
+    original?: CallAudio | null;
+    normalized?: CallAudio | null;
+    attempts?: CallAttempt[];
+    created_at: string;
+    can: { update: boolean; reprocess: boolean; exclude: boolean; play: boolean; download: boolean };
+}
+
+export interface CallSummary {
+    total: number;
+    in_progress: number;
+    awaiting_transcription: number;
+    completed: number;
+    failed: number;
+    excluded: number;
+    needs_employee: number;
+}
+
+export interface UploadSettings {
+    formats: string[];
+    max_file_size_mb: number;
+    max_files_per_batch: number;
+    min_duration_seconds: number;
+    max_duration_minutes: number;
+}

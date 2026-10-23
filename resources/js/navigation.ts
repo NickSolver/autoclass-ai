@@ -17,6 +17,8 @@ export interface NavSection {
     items: NavItem[];
 }
 
+export type ExtraIconName = 'chevron-right' | 'chevron-down' | 'logout' | 'menu' | 'x' | 'plus' | 'search' | 'lock' | 'alert' | 'check' | 'clock' | 'key' | 'play' | 'download' | 'refresh' | 'ban';
+
 export type IconName =
     | 'home' | 'phone' | 'upload' | 'inbox' | 'scale' | 'chart' | 'flow' | 'checklist'
     | 'plug' | 'cpu' | 'building' | 'store' | 'layers' | 'people' | 'user' | 'shield' | 'log' | 'tree';
@@ -29,8 +31,6 @@ export interface UnavailableModule {
 
 /** Описание недоступных модулей — по разделам ТЗ, без обещаний сроков. */
 export const unavailableModules: Record<string, UnavailableModule> = {
-    calls: { title: 'История звонков', stage: 'B', description: 'Список звонков с фильтрами, карточка звонка с аудиоплеером, расшифровкой, оценками и историей версий.' },
-    upload: { title: 'Загрузка звонков', stage: 'B', description: 'Ручная одиночная и пакетная загрузка записей (MP3, WAV, M4A) с проверкой файла, привязкой к подразделению и сотруднику и поиском дублей.' },
     review: { title: 'Очередь ручных проверок', stage: 'E', description: 'Задачи на проверку для звонков со статусом «Требуется вмешательство человека», исправления с обязательной причиной и аудитом.' },
     appeals: { title: 'Апелляции', stage: 'E', description: 'Обращения сотрудников на пересмотр оценки и их рассмотрение независимым контролёром.' },
     analytics: { title: 'Аналитика', stage: 'E', description: 'KPI по финальным результатам с честными знаменателями, динамика по компаниям, центрам и сотрудникам, экспорт.' },
@@ -45,8 +45,8 @@ export const navigation: NavSection[] = [
     {
         title: 'Звонки',
         items: [
-            { label: 'История звонков', to: '/modules/calls', permissions: ['calls.view'], stage: 'B', icon: 'phone' },
-            { label: 'Загрузка', to: '/modules/upload', permissions: ['calls.upload'], stage: 'B', icon: 'upload' },
+            { label: 'Звонки', to: '/calls', permissions: ['calls.view'], icon: 'phone' },
+            { label: 'Загрузка', to: '/calls/upload', permissions: ['calls.upload'], icon: 'upload' },
             { label: 'Ручные проверки', to: '/modules/review', permissions: ['review.assign', 'review.resolve'], stage: 'E', icon: 'inbox' },
             { label: 'Апелляции', to: '/modules/appeals', permissions: ['appeal.create', 'appeal.resolve'], stage: 'E', icon: 'scale' },
             { label: 'Аналитика', to: '/modules/analytics', permissions: ['analytics.view'], stage: 'E', icon: 'chart' },

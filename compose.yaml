@@ -17,9 +17,46 @@ services:
       DB_DATABASE: laravel
       DB_USERNAME: laravel
       DB_PASSWORD: ${MYSQL_PASSWORD:-secret}
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      CACHE_STORE: redis
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_started
+
+  # Обработчик очереди (подготовка аудио и др.); мониторинг — /horizon.
+  horizon:
+    image: autoclass-ai-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    user: "${UID:-1000}:${GID:-1000}"
+    command: php artisan horizon
+    volumes:
+      - .:/var/www/html
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: laravel
+      DB_USERNAME: laravel
+      DB_PASSWORD: ${MYSQL_PASSWORD:-secret}
+      REDIS_HOST: redis
+      QUEUE_CONNECTION: redis
+      CACHE_STORE: redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
 
   nginx:
     image: nginx:stable-alpine
@@ -67,6 +104,11 @@ services:
       DB_USERNAME: laravel
       DB_PASSWORD: ${MYSQL_PASSWORD:-secret}
       SESSION_COOKIE: avtoklass-e2e-session
+      # Отдельное хранилище записей: стенд e2e пересоздаётся и не должен смешиваться с рабочими файлами.
+      CALLS_STORAGE_ROOT: /var/www/html/storage/app/private/calls-e2e
+      # Очередь синхронно: подготовка аудио выполняется в запросе загрузки — тесты не зависят от обработчика.
+      QUEUE_CONNECTION: sync
+      CACHE_STORE: database
       # Повторное подтверждение кодом — сразу, чтобы проверить диалог без ожидания 15 минут.
       AUTH_MFA_STEP_UP_MINUTES: 0
     depends_on:
@@ -86,3 +128,4 @@ services:
 
 volumes:
   mysql_data:
+  redis_data:

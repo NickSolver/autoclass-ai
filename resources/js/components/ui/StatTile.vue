@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { IconName } from '@/navigation';
+import type { ExtraIconName, IconName } from '@/navigation';
 import AppIcon from './AppIcon.vue';
 
 /** Плитка показателя. Значение null — «нет данных» (не ноль). */
-defineProps<{ label: string; value: number | null; icon: IconName; tone?: 'blue' | 'green' | 'amber' | 'red'; to?: string }>();
+defineProps<{ label: string; value: number | null; icon: IconName | ExtraIconName; tone?: 'blue' | 'green' | 'amber' | 'red'; to?: string }>();
 </script>
 
 <template>

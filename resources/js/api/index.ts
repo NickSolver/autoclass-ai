@@ -1,6 +1,9 @@
 import { http } from './http';
 import type {
     AuditEvent,
+    Call,
+    CallSummary,
+    UploadSettings,
     MfaSetup,
     MfaSummary,
     Company,
@@ -107,4 +110,42 @@ export const rolesApi = {
 
 export const auditApi = {
     list: (query?: Query) => get<Paginated<AuditEvent>>('/audit', query),
+};
+
+export interface UploadMeta {
+    company_id?: number | null;
+    dealership_id?: number | null;
+    department_id?: number | null;
+    employee_id?: number | null;
+    direction?: string | null;
+    started_at?: string | null;
+    started_at_tz?: string | null;
+    note?: string | null;
+}
+
+export const callsApi = {
+    list: (query?: Query) => get<Paginated<Call>>('/calls', query),
+    summary: (query?: Query) => get<CallSummary>('/calls/summary', query),
+    show: (id: number) => get<Call>(`/calls/${id}`),
+    update: (id: number, body: Payload) => patch<Call>(`/calls/${id}`, body),
+    reprocess: (id: number) => post<Call>(`/calls/${id}/reprocess`),
+    exclude: (id: number, reason: string) => post<Call>(`/calls/${id}/exclude`, { reason }),
+    uploadSettings: () => get<UploadSettings>('/calls/uploads/settings'),
+    /**
+     * Загрузка одного файла. Ключ идемпотентности задаётся на файл и повторно используется при
+     * повторной попытке — сервер не создаст второй звонок.
+     */
+    upload: async (file: File, meta: UploadMeta, idempotencyKey: string, confirmDuplicate: boolean, onProgress: (percent: number) => void) => {
+        const form = new FormData();
+        form.append('file', file);
+        Object.entries(meta).forEach(([k, v]) => v !== null && v !== undefined && v !== '' && form.append(k, String(v)));
+        if (confirmDuplicate) form.append('confirm_duplicate', '1');
+        const response = await http.post<Call>('/calls/uploads', form, {
+            headers: { 'Idempotency-Key': idempotencyKey },
+            onUploadProgress: (e) => e.total && onProgress(Math.round((e.loaded / e.total) * 100)),
+        });
+        return response.data;
+    },
+    /** Адрес записи: прослушивание идёт через API с проверкой прав, без публичных ссылок. */
+    audioUrl: (id: number, download = false) => `/api/v1/calls/${id}/audio${download ? '?download=1' : ''}`,
 };

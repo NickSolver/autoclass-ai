@@ -38,6 +38,16 @@ return [
             'report' => false,
         ],
 
+        // Записи звонков: только через API с проверкой прав, без публичных ссылок.
+        'calls' => [
+            'driver' => 'local',
+            'root' => env('CALLS_STORAGE_ROOT', storage_path('app/private/calls')),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

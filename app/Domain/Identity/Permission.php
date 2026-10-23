@@ -116,9 +116,13 @@ enum Permission: string
         ];
     }
 
-    /** Модуль, к которому относится право, уже поставлен (этап A) или ещё в разработке. */
+    /** Модуль, к которому относится право, уже поставлен или ещё в разработке. */
     public function isModuleAvailable(): bool
     {
-        return in_array($this->category(), ['identity', 'organization', 'audit'], true);
+        return in_array($this->category(), ['identity', 'organization', 'audit'], true)
+            || in_array($this, [
+                self::CallsView, self::CallsUpload, self::CallsDelete, self::CallsReprocess,
+                self::AudioPlay, self::AudioDownload,
+            ], true);
     }
 }

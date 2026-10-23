@@ -22,6 +22,7 @@ if [ "$DB" != "laravel_e2e" ]; then
   exit 1
 fi
 docker compose exec -T -u "$(id -u):$(id -g)" app-e2e php artisan migrate:fresh --seed --force -q
+rm -rf storage/app/private/calls-e2e
 docker compose exec -T app-e2e php artisan cache:clear -q
 
 echo "→ Тесты"

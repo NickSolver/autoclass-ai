@@ -9,6 +9,8 @@ export async function login(page: Page, loginName: string, password = DEMO_PASSW
     await page.getByLabel('Логин').fill(loginName);
     await page.getByLabel('Пароль').fill(password);
     await page.getByRole('button', { name: 'Войти' }).click();
+    // Ждём завершения входа — иначе следующий переход опередит ответ сервера.
+    if (password === DEMO_PASSWORD) await page.waitForURL((u) => !u.pathname.startsWith('/login'));
 }
 
 export async function logout(page: Page): Promise<void> {
@@ -46,4 +48,35 @@ export class TotpClock {
         this.lastStep = Math.floor(Date.now() / 30_000);
         return totpAt(this.secret, this.lastStep);
     }
+}
+
+/** Синтетическая WAV-запись (синус, PCM 16 бит, моно) — без реальной речи. */
+export function sineWav(seconds = 3, frequency = 440, sampleRate = 8000): Buffer {
+    const samples = Math.floor(seconds * sampleRate);
+    const data = Buffer.alloc(samples * 2);
+    for (let i = 0; i < samples; i++) {
+        data.writeInt16LE(Math.round(Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 12000), i * 2);
+    }
+    const header = Buffer.alloc(44);
+    header.write('RIFF', 0);
+    header.writeUInt32LE(36 + data.length, 4);
+    header.write('WAVE', 8);
+    header.write('fmt ', 12);
+    header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(1, 20);
+    header.writeUInt16LE(1, 22);
+    header.writeUInt32LE(sampleRate, 24);
+    header.writeUInt32LE(sampleRate * 2, 28);
+    header.writeUInt16LE(2, 32);
+    header.writeUInt16LE(16, 34);
+    header.write('data', 36);
+    header.writeUInt32LE(data.length, 40);
+    return Buffer.concat([header, data]);
+}
+
+/** Выбрать в списке подразделений вариант, содержащий текст (названия идут с отступами). */
+export async function selectOptionContaining(page: Page, label: string, text: string): Promise<void> {
+    const select = page.getByLabel(label, { exact: false }).locator('xpath=self::select');
+    const value = await select.locator('option', { hasText: text }).first().getAttribute('value');
+    await select.selectOption(value ?? '');
 }

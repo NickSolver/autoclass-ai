@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { IconName } from '@/navigation';
+import type { ExtraIconName, IconName } from '@/navigation';
 
-type Name = IconName | 'chevron-right' | 'chevron-down' | 'logout' | 'menu' | 'x' | 'plus' | 'search' | 'lock' | 'alert' | 'check' | 'clock' | 'key';
+type Name = IconName | ExtraIconName;
 
 defineProps<{ name: Name; size?: number }>();
 
@@ -37,6 +37,10 @@ const paths: Record<Name, string> = {
     check: 'm5 12 5 5L20 7',
     clock: 'M12 7v5l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
     key: 'M15 7a4 4 0 1 1-3.9 5H3v3h3v3h3v-3h2.1A4 4 0 0 1 15 7zm1 3h.01',
+    play: 'M7 4.5v15l12-7.5z',
+    download: 'M12 4v12m0 0-4-4m4 4 4-4M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1',
+    refresh: 'M20 11a8 8 0 0 0-14.9-3M4 4v4h4m-4 5a8 8 0 0 0 14.9 3M20 20v-4h-4',
+    ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
 };
 </script>
 

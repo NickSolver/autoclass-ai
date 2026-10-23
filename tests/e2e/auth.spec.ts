@@ -14,7 +14,7 @@ test.describe('Вход и выход', () => {
         await login(page, 'demo.qc');
         await expect(page.getByRole('heading', { name: /Здравствуйте, Демо Контролёр качества/ })).toBeVisible();
 
-        await page.getByRole('link', { name: 'История звонков' }).first().click();
+        await page.getByRole('link', { name: 'Ручные проверки' }).first().click();
         await expect(page.getByRole('heading', { name: /в разработке/ })).toBeVisible();
 
         await logout(page);

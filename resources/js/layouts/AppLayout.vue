@@ -22,8 +22,16 @@ const sections = computed(() =>
         .filter((s) => s.items.length > 0),
 );
 
+// Активен самый точный пункт: «Загрузка» (/calls/upload), а не «Звонки» (/calls).
+const activeTo = computed(() => {
+    const matches = sections.value
+        .flatMap((s) => s.items.map((i) => i.to))
+        .filter((to) => (to === '/' ? route.path === '/' : route.path === to || route.path.startsWith(`${to}/`)));
+    return matches.sort((a, b) => b.length - a.length)[0];
+});
+
 function isActive(to: string): boolean {
-    return to === '/' ? route.path === '/' : route.path === to || route.path.startsWith(`${to}/`);
+    return activeTo.value === to;
 }
 
 const initials = computed(() =>

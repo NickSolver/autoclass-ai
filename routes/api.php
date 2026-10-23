@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\Audit\Models\AuditEvent;
+use App\Domain\CallIntake\Models\Call;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Permission;
 use App\Domain\Organization\Models\Company;
@@ -10,6 +11,9 @@ use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\Employee;
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CallAudioController;
+use App\Http\Controllers\Api\V1\CallController;
+use App\Http\Controllers\Api\V1\CallUploadController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyGroupController;
 use App\Http\Controllers\Api\V1\DealershipController;
@@ -44,6 +48,7 @@ Route::bind('department', $visible(Department::class, Permission::OrganizationVi
 Route::bind('employee', $visible(Employee::class, Permission::EmployeesView));
 Route::bind('user', $visible(User::class, Permission::UsersView));
 Route::bind('auditEvent', $visible(AuditEvent::class, Permission::AuditView));
+Route::bind('call', $visible(Call::class, Permission::CallsView));
 Route::bind('assignment', fn (string $value) => request()->route('employee')->assignments()->findOrFail((int) $value));
 Route::bind('roleScope', fn (string $value) => request()->route('user')->roleScopes()->findOrFail((int) $value));
 
@@ -100,6 +105,17 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::apiResource('roles', RoleController::class)->only(['index', 'show']);
         Route::apiResource('roles', RoleController::class)->only(['store', 'update', 'destroy'])->middleware('mfa.recent');
         Route::get('permissions', PermissionController::class)->name('permissions.index');
+
+        // Звонки (этап B).
+        Route::get('calls/summary', [CallController::class, 'summary'])->name('calls.summary');
+        Route::get('calls/uploads/settings', [CallUploadController::class, 'settings'])->name('calls.uploads.settings');
+        Route::post('calls/uploads', [CallUploadController::class, 'store'])->middleware('throttle:uploads')->name('calls.uploads');
+        Route::get('calls', [CallController::class, 'index'])->name('calls.index');
+        Route::get('calls/{call}', [CallController::class, 'show'])->name('calls.show');
+        Route::patch('calls/{call}', [CallController::class, 'update'])->name('calls.update');
+        Route::get('calls/{call}/audio', CallAudioController::class)->name('calls.audio');
+        Route::post('calls/{call}/reprocess', [CallController::class, 'reprocess'])->name('calls.reprocess');
+        Route::post('calls/{call}/exclude', [CallController::class, 'exclude'])->name('calls.exclude');
 
         Route::get('audit', [AuditEventController::class, 'index'])->name('audit.index');
         Route::get('audit/{auditEvent}', [AuditEventController::class, 'show'])->name('audit.show');
