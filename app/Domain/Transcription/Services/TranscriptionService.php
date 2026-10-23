@@ -2,11 +2,13 @@
 
 namespace App\Domain\Transcription\Services;
 
+use App\Domain\AiProviders\Contracts\AudioInput;
 use App\Domain\AiProviders\Contracts\TranscriptionResult;
 use App\Domain\AiProviders\Models\ProviderConfig;
 use App\Domain\AiProviders\ProviderException;
 use App\Domain\AiProviders\Services\DriverRegistry;
 use App\Domain\AiProviders\Services\ProviderInvoker;
+use App\Domain\Audio\Models\AudioFile;
 use App\Domain\CallIntake\Models\Call;
 use App\Domain\Transcription\Models\TranscriptionRun;
 use App\Domain\Transcription\Models\TranscriptVersion;
@@ -28,22 +30,31 @@ final class TranscriptionService
     /** @throws ProviderException */
     public function transcribe(Call $call, ProviderConfig $config, int $attempt): TranscriptVersion
     {
+        $call->loadMissing(['normalized', 'original']);
         $audio = $call->normalized ?? throw new ProviderException(ProviderException::CONFIG_ERROR, 'Нет подготовленной записи для распознавания.');
         $run = TranscriptionRun::create([
             'call_id' => $call->id, 'provider_config_id' => $config->id, 'driver' => $config->driver,
             'status' => 'running', 'started_at' => now(),
         ]);
 
-        // Провайдеру нужен локальный файл: копия во временном каталоге, удаляется после вызова.
-        $tmp = storage_path('app/tmp/'.Str::uuid().'.wav');
-        @mkdir(dirname($tmp), 0o700, true);
+        // Провайдеру нужны локальные файлы: копии во временном каталоге, удаляются после вызова.
+        $original = $call->original ?? throw new ProviderException(ProviderException::CONFIG_ERROR, 'Нет исходной записи.');
+        $workDir = storage_path('app/tmp/asr-'.Str::uuid());
+        @mkdir($workDir, 0o700, true);
         try {
-            file_put_contents($tmp, Storage::disk($audio->disk)->readStream($audio->path));
+            $input = new AudioInput(
+                workDir: $workDir,
+                normalizedPath: $this->copy($audio, "{$workDir}/normalized.wav"),
+                originalPath: $this->copy($original, "{$workDir}/original.{$original->format}"),
+                originalFormat: $original->format,
+                originalChannels: (int) ($original->channels ?? 1),
+                durationMs: $audio->duration_ms,
+            );
             $driver = $this->drivers->speechToText($config->driver);
             /** @var TranscriptionResult $result */
             $result = $this->invoker->invoke(
                 $config, 'transcribe',
-                fn () => $driver->transcribe($config, $tmp, $audio->duration_ms),
+                fn () => $driver->transcribe($config, $input),
                 fn (TranscriptionResult $r) => ['audio_seconds' => $r->billedSeconds],
                 ['call_id' => $call->id, 'input_hash' => $audio->sha256, 'attempt' => $attempt],
             );
@@ -52,7 +63,8 @@ final class TranscriptionService
             $run->update(['status' => 'failed', 'finished_at' => now(), 'error_message' => Str::limit($e->getMessage(), 490)]);
             throw $e;
         } finally {
-            @unlink($tmp);
+            array_map('unlink', glob("{$workDir}/*") ?: []);
+            @rmdir($workDir);
         }
 
         return DB::transaction(function () use ($call, $run, $result) {
@@ -79,6 +91,13 @@ final class TranscriptionService
 
             return $version;
         });
+    }
+
+    private function copy(AudioFile $file, string $target): string
+    {
+        file_put_contents($target, Storage::disk($file->disk)->readStream($file->path));
+
+        return $target;
     }
 
     /** @throws ProviderException */

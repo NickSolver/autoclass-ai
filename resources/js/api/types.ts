@@ -345,9 +345,22 @@ export interface ProviderConfig {
     };
 }
 
+export interface ProviderDriverInfo {
+    code: string;
+    name: string;
+    external: boolean;
+    available: boolean;
+    reason?: string;
+    endpoint?: string | null;
+    models?: string[];
+    model_required?: boolean;
+    secret_fields?: { key: string; label: string }[];
+    note?: string | null;
+}
+
 export interface ProvidersOverview {
     data: ProviderConfig[];
-    drivers: Record<ProviderKindCode, { code: string; name: string; external: boolean }[]>;
+    drivers: Record<ProviderKindCode, ProviderDriverInfo[]>;
     presets: Record<string, { name: string; endpoint: string; model: string }[]>;
     mock_scenarios: Record<ProviderKindCode, { code: string; name: string }[]>;
     external_processing: { enabled: boolean; reason: string | null; changed_at: string | null; changed_by: number | null };

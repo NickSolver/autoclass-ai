@@ -28,14 +28,14 @@ final class ProviderConfigService
     {
         $kind = ProviderKind::from($data['kind']);
         $this->assertDriver($kind, $data['driver']);
-        $this->assertConnection($data['driver'], $data['endpoint'] ?? null, $data['model'] ?? null);
+        $this->assertConnection($data['driver'], ($data['endpoint'] ?? null) ?: $this->drivers->defaultEndpoint($data['driver']), $data['model'] ?? null);
 
         return ProviderConfig::create([
             'kind' => $kind,
             'driver' => $data['driver'],
             'name' => $data['name'],
             'model' => $data['model'] ?? null,
-            'endpoint' => $data['endpoint'] ?? null,
+            'endpoint' => ($data['endpoint'] ?? null) ?: $this->drivers->defaultEndpoint($data['driver']),
             'settings' => $this->settings($kind, $data['driver'], $data['settings'] ?? []),
             'role' => ProviderRole::Inactive,
             'created_by' => $actor->id,
@@ -62,9 +62,22 @@ final class ProviderConfigService
         });
     }
 
-    /** Секрет задаётся отдельной операцией и никогда не возвращается (ТЗ, разд. 8). */
-    public function setSecret(ProviderConfig $config, ?string $secret): ProviderConfig
+    /**
+     * Секрет задаётся отдельной операцией и никогда не возвращается (ТЗ, разд. 8).
+     * Для драйверов с несколькими ключами (T-Bank: API-ключ и секретный ключ) хранится JSON.
+     *
+     * @param  string|array<string, string>|null  $secret
+     */
+    public function setSecret(ProviderConfig $config, string|array|null $secret): ProviderConfig
     {
+        if (is_array($secret)) {
+            $fields = $this->drivers->secretFields($config->driver);
+            $missing = array_filter($fields, fn (string $f) => trim((string) ($secret[$f] ?? '')) === '');
+            if ($missing !== []) {
+                throw ValidationException::withMessages(['secrets' => 'Заполните все ключи.']);
+            }
+            $secret = (string) json_encode(array_intersect_key($secret, array_flip($fields)));
+        }
         $config->forceFill(['secret' => $secret, 'secret_set_at' => $secret === null ? null : now()])->saveQuietly();
         $this->audit->record($secret === null ? 'provider_config.secret_cleared' : 'provider_config.secret_set', $config);
 
@@ -130,8 +143,8 @@ final class ProviderConfigService
             return;
         }
         $this->endpoints->assertSafe($endpoint);
-        if (trim((string) $model) === '') {
-            throw ValidationException::withMessages(['model' => 'Укажите модель (например, deepseek-chat).']);
+        if ($this->drivers->modelRequired($driver) && trim((string) $model) === '') {
+            throw ValidationException::withMessages(['model' => 'Укажите модель.']);
         }
     }
 
@@ -160,6 +173,20 @@ final class ProviderConfigService
         } else {
             $settings['price_per_1k_tokens_in'] = isset($input['price_per_1k_tokens_in']) ? (float) $input['price_per_1k_tokens_in'] : null;
             $settings['price_per_1k_tokens_out'] = isset($input['price_per_1k_tokens_out']) ? (float) $input['price_per_1k_tokens_out'] : null;
+        }
+        if ($kind === ProviderKind::Asr && $driver !== 'mock') {
+            $settings['language'] = (string) ($input['language'] ?? ($driver === 'openai' ? 'ru' : 'ru-RU'));
+            $settings['max_wait_seconds'] = max(60, min(3600, (int) ($input['max_wait_seconds'] ?? 600)));
+            $settings['poll_seconds'] = max(1, min(30, (int) ($input['poll_seconds'] ?? 2)));
+        }
+        if (in_array($driver, ['yandex', 'tbank'], true)) {
+            // Стерео: каналы — говорящие (в телефонной записи сотрудник и клиент часто на разных каналах).
+            $settings['multichannel'] = (bool) ($input['multichannel'] ?? true);
+        }
+        if ($driver === 'yandex') {
+            $settings['speaker_labeling'] = (bool) ($input['speaker_labeling'] ?? true);
+            $folder = trim((string) ($input['folder_id'] ?? ''));
+            $settings['folder_id'] = $folder !== '' ? $folder : null;
         }
         if ($driver === 'openai_compatible') {
             $settings['json_mode'] = (bool) ($input['json_mode'] ?? true);

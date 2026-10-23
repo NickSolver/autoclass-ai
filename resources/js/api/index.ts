@@ -162,7 +162,8 @@ export const aiApi = {
     create: (body: Payload) => post<ProviderConfig>('/ai-providers', body),
     update: (id: number, body: Payload) => patch<ProviderConfig>(`/ai-providers/${id}`, body),
     /** Ключ передаётся только на сервер и никогда не возвращается. */
-    setSecret: async (id: number, secret: string) => (await http.put<ProviderConfig>(`/ai-providers/${id}/secret`, { secret })).data,
+    setSecret: async (id: number, secret: string | Record<string, string>) =>
+        (await http.put<ProviderConfig>(`/ai-providers/${id}/secret`, typeof secret === 'string' ? { secret } : { secrets: secret })).data,
     clearSecret: (id: number) => del<ProviderConfig>(`/ai-providers/${id}/secret`),
     setRole: (id: number, role: string) => post<ProviderConfig>(`/ai-providers/${id}/role`, { role }),
     test: (id: number) => post<{ ok: boolean; message: string }>(`/ai-providers/${id}/test`),

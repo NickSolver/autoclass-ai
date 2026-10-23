@@ -2,6 +2,7 @@
 
 namespace App\Domain\AiProviders\Drivers\Mock;
 
+use App\Domain\AiProviders\Contracts\AudioInput;
 use App\Domain\AiProviders\Contracts\SpeechToTextProviderInterface;
 use App\Domain\AiProviders\Contracts\TranscriptionResult;
 use App\Domain\AiProviders\Contracts\TranscriptSegmentData;
@@ -30,8 +31,9 @@ final class MockSpeechToText implements SpeechToTextProviderInterface
         ['agent', 'Хорошего дня, до свидания.'],
     ];
 
-    public function transcribe(ProviderConfig $config, string $audioPath, int $durationMs): TranscriptionResult
+    public function transcribe(ProviderConfig $config, AudioInput $audio): TranscriptionResult
     {
+        $durationMs = $audio->durationMs;
         $scenario = MockScenario::tryFrom((string) $config->setting('mock_scenario')) ?? MockScenario::Normal;
         $this->simulateFailure($scenario);
 

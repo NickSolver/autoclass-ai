@@ -8,12 +8,8 @@ use App\Domain\AiProviders\ProviderException;
 /** Распознавание речи с таймкодами и разделением говорящих (ТЗ, разд. 8). */
 interface SpeechToTextProviderInterface
 {
-    /**
-     * @param  string  $audioPath  локальный путь к нормализованной записи (WAV, моно, 16 кГц)
-     *
-     * @throws ProviderException
-     */
-    public function transcribe(ProviderConfig $config, string $audioPath, int $durationMs): TranscriptionResult;
+    /** @throws ProviderException */
+    public function transcribe(ProviderConfig $config, AudioInput $audio): TranscriptionResult;
 
     /** @throws ProviderException */
     public function testConnection(ProviderConfig $config): void;

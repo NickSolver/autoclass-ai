@@ -94,9 +94,14 @@ class AiProviderController extends Controller
     public function setSecret(Request $request, ProviderConfig $provider): ProviderConfigResource
     {
         $this->authorize('ai.manage');
-        $data = $request->validate(['secret' => ['required', 'string', 'min:8', 'max:500']]);
+        $data = $request->validate([
+            'secret' => ['required_without:secrets', 'nullable', 'string', 'min:8', 'max:500'],
+            // Несколько ключей (T-Bank: api_key + secret_key).
+            'secrets' => ['required_without:secret', 'nullable', 'array'],
+            'secrets.*' => ['string', 'max:500'],
+        ]);
 
-        return new ProviderConfigResource($this->configs->setSecret($provider, $data['secret']));
+        return new ProviderConfigResource($this->configs->setSecret($provider, $data['secrets'] ?? $data['secret']));
     }
 
     public function clearSecret(ProviderConfig $provider): ProviderConfigResource

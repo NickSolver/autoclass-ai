@@ -98,17 +98,26 @@ async function testProvider(p: ProviderConfig): Promise<void> {
 // --- Ключ API ---
 const secretOpen = ref(false);
 const secretFor = ref<ProviderConfig | null>(null);
-const secretValue = ref('');
+const secretValues = ref<Record<string, string>>({});
 const secretForm = useForm();
+// Поля ключа зависят от сервиса: у T-Bank — API-ключ и секретный ключ, у остальных — один ключ.
+const secretFields = computed(() => {
+    const p = secretFor.value;
+    const info = p ? overview.value?.drivers[p.kind].find((d) => d.code === p.driver) : undefined;
+    return info?.secret_fields?.length ? info.secret_fields : [{ key: 'secret', label: 'Ключ API' }];
+});
+const secretComplete = computed(() => secretFields.value.every((f) => (secretValues.value[f.key] ?? '').trim().length > 0));
 function openSecret(p: ProviderConfig): void {
     secretFor.value = p;
-    secretValue.value = '';
+    secretValues.value = {};
     secretForm.reset();
     secretOpen.value = true;
 }
 async function saveSecret(): Promise<void> {
-    const r = await secretForm.submit(() => aiApi.setSecret(secretFor.value!.id, secretValue.value));
-    secretValue.value = '';
+    const fields = secretFields.value;
+    const payload = fields.length === 1 && fields[0]!.key === 'secret' ? (secretValues.value.secret ?? '') : { ...secretValues.value };
+    const r = await secretForm.submit(() => aiApi.setSecret(secretFor.value!.id, payload));
+    secretValues.value = {};
     if (r) {
         secretOpen.value = false;
         push('Ключ сохранён. Он хранится зашифрованным и больше не показывается.');
@@ -227,8 +236,9 @@ const operationLabels: Record<string, string> = { transcribe: 'Распозна�
             </UiCard>
 
             <UiAlert tone="info">
-                У DeepSeek и других OpenAI-совместимых сервисов нет распознавания речи — для него нужен отдельный провайдер.
-                Пока распознавание выполняет тестовый провайдер, внешней модели уходит только его синтетический диалог, а не речь из ваших записей.
+                Распознавание речи и оценка — разные сервисы: у DeepSeek распознавания нет. Для распознавания доступны
+                Яндекс SpeechKit, T-Bank VoiceKit (данные в РФ) и OpenAI (данные за рубежом). Пока основным распознавателем
+                выбран тестовый, внешней модели оценки уходит только его синтетический диалог, а не речь из ваших записей.
             </UiAlert>
         </div>
     </template>
@@ -261,11 +271,20 @@ const operationLabels: Record<string, string> = { transcribe: 'Распозна�
         <form id="secret-form" class="space-y-4" @submit.prevent="saveSecret">
             <UiAlert tone="info">Ключ хранится в зашифрованном виде и больше не показывается — ни здесь, ни в журналах.</UiAlert>
             <UiAlert v-if="secretForm.formError.value" tone="danger">{{ secretForm.formError.value }}</UiAlert>
-            <UiInput v-model="secretValue" type="password" label="Ключ API" autocomplete="off" required :error="secretForm.errors.value.secret" />
+            <UiInput
+                v-for="f in secretFields"
+                :key="f.key"
+                v-model="secretValues[f.key]"
+                type="password"
+                :label="f.label"
+                autocomplete="off"
+                required
+                :error="secretForm.errors.value.secret || secretForm.errors.value.secrets"
+            />
         </form>
         <template #footer>
             <UiButton @click="secretOpen = false">Отмена</UiButton>
-            <UiButton type="submit" form="secret-form" variant="primary" :loading="secretForm.submitting.value" :disabled="secretValue.length < 8">Сохранить ключ</UiButton>
+            <UiButton type="submit" form="secret-form" variant="primary" :loading="secretForm.submitting.value" :disabled="!secretComplete">Сохранить ключ</UiButton>
         </template>
     </UiModal>
 
