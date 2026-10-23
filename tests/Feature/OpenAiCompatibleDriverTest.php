@@ -134,6 +134,17 @@ class OpenAiCompatibleDriverTest extends TestCase
     }
 
     #[Test]
+    public function connection_test_reports_a_missing_model_with_the_available_ones(): void
+    {
+        Http::fake(['api.deepseek.com/models' => Http::response(['object' => 'list', 'data' => [['id' => 'deepseek-flash'], ['id' => 'deepseek-v4-pro']]])]);
+        $config = $this->config();
+        $config->update(['model' => 'deepseek-v4-flash']);
+
+        $this->expectExceptionMessage('Ключ работает, но модели «deepseek-v4-flash» нет. Доступные: deepseek-flash, deepseek-v4-pro.');
+        app(OpenAiCompatibleEvaluation::class)->testConnection($config);
+    }
+
+    #[Test]
     public function full_pipeline_with_deepseek_style_responses(): void
     {
         Storage::fake('calls');

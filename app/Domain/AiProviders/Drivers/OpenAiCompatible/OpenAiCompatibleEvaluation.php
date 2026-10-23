@@ -54,10 +54,18 @@ final class OpenAiCompatibleEvaluation implements EvaluationProviderInterface
         );
     }
 
-    /** Проверка ключа и адреса: список моделей (GET /models). */
+    /**
+     * Проверка ключа, адреса и модели: список моделей (GET /models). Линейки моделей меняются —
+     * если указанной модели нет в списке, администратор сразу видит доступные.
+     */
     public function testConnection(ProviderConfig $config): void
     {
-        $this->send(fn (PendingRequest $http) => $http->get($this->url($config, '/models')), $config);
+        $response = $this->send(fn (PendingRequest $http) => $http->get($this->url($config, '/models')), $config);
+        $available = collect((array) $response->json('data'))->pluck('id')->filter()->values();
+        if ($available->isNotEmpty() && ! $available->contains($config->model)) {
+            throw new ProviderException(ProviderException::CONFIG_ERROR,
+                "Ключ работает, но модели «{$config->model}» нет. Доступные: ".$available->implode(', ').'.');
+        }
     }
 
     public function isExternal(): bool

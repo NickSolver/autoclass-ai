@@ -37,7 +37,8 @@ final class DriverRegistry
     /** Готовые настройки для известных сервисов (адрес и модель; ключ и тарифы — администратор). */
     public const PRESETS = [
         'openai_compatible' => [
-            ['name' => 'DeepSeek', 'endpoint' => 'https://api.deepseek.com', 'model' => 'deepseek-chat'],
+            // Модель — по списку /models на 24.10.2026; линейка меняется, «Проверить» сверяет модель с актуальным списком.
+            ['name' => 'DeepSeek', 'endpoint' => 'https://api.deepseek.com', 'model' => 'deepseek-flash'],
         ],
     ];
 
