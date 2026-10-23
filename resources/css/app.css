@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+
+@source '../js/**/*.{vue,ts}';
+@source '../views/**/*.blade.php';
+
+/*
+ * Дизайн-токены портала. Внешние шрифты не подключаются (закрытый контур) —
+ * используется системный стек.
+ */
+@theme {
+    --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', 'Consolas', monospace;
+
+    /* Палитра по дизайн-референсу ТЗ (последняя страница): насыщенный синий бренда, светло-голубой фон. */
+    --color-brand-50: #eef4fe;
+    --color-brand-100: #dbe7fd;
+    --color-brand-200: #b9cffa;
+    --color-brand-500: #2a6ae8;
+    --color-brand-600: #1a56d6;
+    --color-brand-700: #1546ad;
+    --color-brand-900: #0f2f6e;
+
+    --color-ink: #13203a;
+    --color-muted: #5d6b82;
+    --color-line: #e2e8f2;
+    --color-canvas: #f1f5fb;
+    --color-sidebar: #0f45a8;
+    --color-sidebar-deep: #0b2c6b;
+}
+
+@layer base {
+    html,
+    body {
+        @apply h-full bg-canvas text-ink antialiased;
+        font-size: 14px;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-brand-500;
+    }
+}
