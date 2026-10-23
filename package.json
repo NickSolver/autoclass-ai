@@ -6,10 +6,12 @@
         "build": "vue-tsc --noEmit && vite build",
         "dev": "vite",
         "typecheck": "vue-tsc --noEmit",
-        "lint": "eslint resources/js",
-        "test": "vitest run"
+        "lint": "eslint resources/js tests/e2e",
+        "test": "vitest run",
+        "test:e2e": "scripts/e2e.sh"
     },
     "devDependencies": {
+        "@playwright/test": "^1.56.1",
         "@tailwindcss/vite": "^4.0.0",
         "@types/node": "^26.6.5",
         "@vitejs/plugin-vue": "^6.0.10",

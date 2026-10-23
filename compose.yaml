@@ -5,6 +5,7 @@ services:
       args:
         UID: ${UID:-1000}
         GID: ${GID:-1000}
+    image: autoclass-ai-app
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
@@ -47,6 +48,41 @@ services:
       timeout: 5s
       retries: 30
       start_period: 20s
+
+  # Изолированный стенд для браузерных e2e-тестов (scripts/e2e.sh): своя база laravel_e2e,
+  # порт 8081. Запускается только с профилем e2e и не трогает рабочую базу.
+  app-e2e:
+    image: autoclass-ai-app
+    profiles: [e2e]
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: e2e
+      APP_URL: http://localhost:8081
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: laravel_e2e
+      DB_USERNAME: laravel
+      DB_PASSWORD: ${MYSQL_PASSWORD:-secret}
+      SESSION_COOKIE: avtoklass-e2e-session
+      # Повторное подтверждение кодом — сразу, чтобы проверить диалог без ожидания 15 минут.
+      AUTH_MFA_STEP_UP_MINUTES: 0
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx-e2e:
+    image: nginx:stable-alpine
+    profiles: [e2e]
+    ports:
+      - '8081:80'
+    volumes:
+      - ./public:/var/www/html/public:ro
+      - ./docker/nginx-e2e.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app-e2e
 
 volumes:
   mysql_data:
