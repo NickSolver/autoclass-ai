@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $evaluation_result_id
  * @property int $checklist_criterion_id
  * @property string $status
+ * @property string $origin
+ * @property ?string $previous_status
  * @property ?string $reason
  * @property ?string $confidence
  * @property bool $evidence_valid

@@ -71,6 +71,7 @@ final class AnalysisService
                 $this->store($run, $call, $route['role'], $route['version'], $checked);
             }
             $run->update(['status' => 'succeeded', 'finished_at' => now()]);
+            $call->forceFill(['current_analysis_run_id' => $run->id])->save();
             // Вмешательство по результату добавляется к задачам, которые уже поставил бизнес-процесс.
             if ($run->results()->where('business_status', EvaluationResult::INTERVENTION)->exists()) {
                 $call->refresh()->forceFill([

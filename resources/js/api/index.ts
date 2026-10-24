@@ -1,5 +1,10 @@
 import { http } from './http';
 import type {
+    AnalyticsReport,
+    AppealItem,
+    CriterionChange,
+    ReviewItem,
+    PageMeta,
     ChecklistChange,
     ChecklistDetail,
     ChecklistSummary,
@@ -212,4 +217,36 @@ export const workflowsApi = {
         post<SimulationResult>(`/workflows/${id}/versions/${versionId}/simulate`, body),
     publish: (id: number, versionId: number) => post<WorkflowVersion>(`/workflows/${id}/versions/${versionId}/publish`),
     newDraft: (id: number) => post<WorkflowVersion>(`/workflows/${id}/versions`),
+};
+
+type Decision = { result_id: number; decision: 'confirmed' | 'corrected'; changes?: CriterionChange[] };
+type Page<T> = { data: T[]; meta: PageMeta };
+
+export const reviewsApi = {
+    queue: (query?: Query) => get<Page<ReviewItem> & { counts: { pending: number; in_progress: number; mine: number } }>('/review-queue', query),
+    request: (callId: number, reason: string) => post<ReviewItem>(`/calls/${callId}/reviews`, { reason }),
+    assignees: (id: number) => get<{ data: { id: number; name: string }[] }>(`/review-queue/${id}/assignees`),
+    assign: (id: number, assigneeId: number, lockVersion: number) => post<ReviewItem>(`/review-queue/${id}/assign`, { assignee_id: assigneeId, lock_version: lockVersion }),
+    take: (id: number, lockVersion: number) => post<ReviewItem>(`/review-queue/${id}/take`, { lock_version: lockVersion }),
+    resolve: (id: number, lockVersion: number, comment: string, decisions: Decision[]) =>
+        post<ReviewItem>(`/review-queue/${id}/resolve`, { lock_version: lockVersion, comment, decisions }),
+    cancel: (id: number, lockVersion: number, reason: string) => post<ReviewItem>(`/review-queue/${id}/cancel`, { lock_version: lockVersion, reason }),
+    correctTranscript: (callId: number, version: number, reason: string, segments: { id: number; text?: string; speaker_role?: string }[]) =>
+        post<{ version: number }>(`/calls/${callId}/transcript/corrections`, { version, reason, segments }),
+};
+
+export const appealsApi = {
+    list: (query?: Query) => get<Page<AppealItem>>('/appeals', query),
+    create: (callId: number, resultId: number, reason: string) => post<AppealItem>(`/calls/${callId}/appeals`, { result_id: resultId, reason }),
+    assignees: (id: number) => get<{ data: { id: number; name: string }[] }>(`/appeals/${id}/assignees`),
+    assign: (id: number, assigneeId: number, lockVersion: number) => post<AppealItem>(`/appeals/${id}/assign`, { assignee_id: assigneeId, lock_version: lockVersion }),
+    take: (id: number, lockVersion: number) => post<AppealItem>(`/appeals/${id}/take`, { lock_version: lockVersion }),
+    withdraw: (id: number, lockVersion: number) => post<AppealItem>(`/appeals/${id}/withdraw`, { lock_version: lockVersion }),
+    resolve: (id: number, lockVersion: number, decision: 'accepted' | 'rejected', comment: string, changes: CriterionChange[]) =>
+        post<AppealItem>(`/appeals/${id}/resolve`, { lock_version: lockVersion, decision, comment, changes }),
+};
+
+export const analyticsApi = {
+    report: (query?: Query) => get<AnalyticsReport>('/analytics', query),
+    exportUrl: (query: Query) => `/api/v1/analytics/export?${new URLSearchParams(Object.entries(clean(query)).map(([k, v]) => [k, String(v)])).toString()}`,
 };

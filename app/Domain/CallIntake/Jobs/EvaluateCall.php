@@ -7,6 +7,7 @@ use App\Domain\AiProviders\Services\ProviderSelector;
 use App\Domain\CallIntake\CallStatus;
 use App\Domain\CallIntake\Models\Call;
 use App\Domain\Evaluation\Services\AnalysisService;
+use App\Domain\Review\Services\ReviewService;
 use App\Domain\Transcription\Models\TranscriptVersion;
 use App\Domain\Workflow\Services\WorkflowRuntime;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -36,7 +37,7 @@ final class EvaluateCall implements ShouldBeUnique, ShouldQueue
         return 'evaluate:'.$this->callId;
     }
 
-    public function handle(ProviderSelector $selector, AnalysisService $analysis, WorkflowRuntime $workflows): void
+    public function handle(ProviderSelector $selector, AnalysisService $analysis, WorkflowRuntime $workflows, ReviewService $reviews): void
     {
         $call = Call::query()->find($this->callId);
         if ($call === null || ! in_array($call->status, [CallStatus::AwaitingEvaluation, CallStatus::Classifying, CallStatus::Evaluating], true)) {
@@ -53,12 +54,14 @@ final class EvaluateCall implements ShouldBeUnique, ShouldQueue
         try {
             // Классификация — бизнес-процесс. Экземпляр, уже ждущий анализа, продолжает свою закреплённую
             // версию (повтор шага не перезапускает маршрут и не подхватывает новую публикацию).
+            $analysisRun = null;
             $run = $workflows->pending($call, $transcript) ?? $workflows->start($call, $transcript);
             if ($run->status === 'waiting_analysis') {
                 $call->transitionTo(CallStatus::Evaluating);
                 $analysisRun = $analysis->analyze($call, $transcript, $config, $this->attempts(), $workflows->routes($run));
                 $workflows->finish($run, $call, $analysisRun);
             }
+            $reviews->syncAfterProcessing($call, $analysisRun);
         } catch (Throwable $e) {
             $this->handleFailure($call, $attempt, $e, CallStatus::AwaitingEvaluation);
 

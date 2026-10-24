@@ -70,7 +70,7 @@ final class WorkflowRuntime
         ]);
 
         // Новый проход процесса — новые решения: прежние метки и задачи этого звонка снимаются.
-        $call->forceFill(['labels' => null, 'priority' => 'normal', 'review_required' => false, 'review_reason' => null])->save();
+        $call->forceFill(['labels' => null, 'priority' => 'normal', 'review_required' => false, 'review_reason' => null, 'current_analysis_run_id' => null])->save();
 
         try {
             if ($version === null) {

@@ -51,6 +51,7 @@ use Illuminate\Support\Carbon;
  * @property ?string $review_reason
  * @property ?list<string> $labels
  * @property string $priority
+ * @property ?int $current_analysis_run_id
  * @property ?string $last_error
  * @property ?string $excluded_reason
  * @property ?Carbon $excluded_at
@@ -160,7 +161,17 @@ class Call extends Model
     /** @return HasOne<EvaluationResult, $this> */
     public function primaryEvaluation(): HasOne
     {
-        return $this->hasOne(EvaluationResult::class)->ofMany(['id' => 'max'], fn (Builder $q) => $q->where('role', 'primary'));
+        return $this->hasOne(EvaluationResult::class)->ofMany(['id' => 'max'], fn (Builder $q) => $q->where('role', 'primary')->where('is_current', true));
+    }
+
+    /**
+     * Итоговые результаты действующего анализа (последние ревизии).
+     *
+     * @return HasMany<EvaluationResult, $this>
+     */
+    public function currentResults(): HasMany
+    {
+        return $this->hasMany(EvaluationResult::class)->where('analysis_run_id', $this->current_analysis_run_id)->where('is_current', true)->orderBy('id');
     }
 
     /** @return HasMany<CallProcessingAttempt, $this> */

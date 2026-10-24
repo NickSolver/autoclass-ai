@@ -4,6 +4,8 @@ import { ApiError } from '@/api/http';
 import type { AnalysisResponse, Call, Employee, TranscriptResponse } from '@/api/types';
 import EvaluationPanel from '@/components/calls/EvaluationPanel.vue';
 import TranscriptPanel from '@/components/calls/TranscriptPanel.vue';
+import AppealsPanel from '@/components/review/AppealsPanel.vue';
+import ReviewPanel from '@/components/review/ReviewPanel.vue';
 import OrgUnitSelect, { type OrgUnitValue } from '@/components/org/OrgUnitSelect.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue';
@@ -239,8 +241,20 @@ async function saveEdit(): Promise<void> {
                     звонок ждёт этого шага. После настройки в разделе «ИИ-провайдеры» нажмите «Обработать повторно».
                 </UiAlert>
 
+                <template v-if="analysis && !inProgress">
+                    <ReviewPanel v-if="analysis.review || analysis.can.request_review" :call-id="call.id" :analysis="analysis" @changed="load(true)" />
+                    <AppealsPanel :call-id="call.id" :analysis="analysis" @changed="load(true)" />
+                </template>
                 <EvaluationPanel v-if="analysis" :analysis="analysis" @seek="seek" />
-                <TranscriptPanel v-if="transcript" :transcript="transcript" :highlight="highlight" @seek="(ms) => seek(ms, null)" />
+                <TranscriptPanel
+                    v-if="transcript"
+                    :transcript="transcript"
+                    :highlight="highlight"
+                    :call-id="call.id"
+                    :can-edit="!!analysis?.can.edit_transcript && !inProgress"
+                    @seek="(ms) => seek(ms, null)"
+                    @changed="load(true)"
+                />
 
                 <UiCard title="История обработки" :padded="false">
                     <p v-if="!call.attempts?.length" class="px-5 py-4 text-[13px] text-muted">Обработка ещё не начиналась.</p>

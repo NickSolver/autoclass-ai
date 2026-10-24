@@ -12,6 +12,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Permission;
 use App\Domain\Organization\Models\Employee;
 use App\Domain\Organization\Services\OrgPathResolver;
+use App\Domain\Review\Services\ReviewService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,7 @@ final class CallActionsService
         private readonly OrgSnapshot $snapshots,
         private readonly CallUploadService $uploads,
         private readonly AuditLogger $audit,
+        private readonly ReviewService $reviews,
     ) {}
 
     /**
@@ -75,6 +77,7 @@ final class CallActionsService
             'excluded_by' => $actor->id,
         ])->save();
         $this->audit->record('call.excluded', $call, ['previous_status' => $previous->value], $reason);
+        $this->reviews->cancelOpen($call, "Звонок исключён из обработки: {$reason}", $actor);
 
         return $call;
     }
@@ -139,6 +142,10 @@ final class CallActionsService
         }
 
         $call->forceFill($attributes)->save();
+        if ($orgChanged) {
+            // Проверки и апелляции следуют за звонком: их область — путь звонка.
+            $this->reviews->followCall($call);
+        }
         if ($changes !== []) {
             $this->audit->record('call.updated', $call, $changes);
         }

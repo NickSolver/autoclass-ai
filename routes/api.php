@@ -14,6 +14,8 @@ use App\Domain\Organization\Models\Employee;
 use App\Domain\Workflow\Models\WorkflowDefinition;
 use App\Http\Controllers\Api\V1\AiProviderCallController;
 use App\Http\Controllers\Api\V1\AiProviderController;
+use App\Http\Controllers\Api\V1\AnalyticsController;
+use App\Http\Controllers\Api\V1\AppealController;
 use App\Http\Controllers\Api\V1\AuditEventController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CallAnalysisController;
@@ -31,6 +33,7 @@ use App\Http\Controllers\Api\V1\MfaController;
 use App\Http\Controllers\Api\V1\OrgTreeController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\PermissionController;
+use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SessionController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -64,6 +67,8 @@ Route::bind('workflow', fn (string $value) => WorkflowDefinition::query()->findO
 Route::bind('workflowVersion', fn (string $value) => request()->route('workflow')->versions()->findOrFail((int) $value));
 Route::bind('assignment', fn (string $value) => request()->route('employee')->assignments()->findOrFail((int) $value));
 Route::bind('roleScope', fn (string $value) => request()->route('user')->roleScopes()->findOrFail((int) $value));
+Route::bind('review', fn (string $value) => ReviewController::visible(request()->user())->findOrFail((int) $value));
+Route::bind('appeal', fn (string $value) => AppealController::visible(request()->user())->findOrFail((int) $value));
 
 // Публичные маршруты: только вход и восстановление пароля. Регистрации нет.
 Route::prefix('auth')->name('auth.')->group(function () {
@@ -164,6 +169,26 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('workflows/{workflow}/versions/{workflowVersion}/validate', [WorkflowController::class, 'validateVersion'])->name('workflows.versions.validate');
         Route::post('workflows/{workflow}/versions/{workflowVersion}/simulate', [WorkflowController::class, 'simulate'])->name('workflows.versions.simulate');
         Route::post('workflows/{workflow}/versions/{workflowVersion}/publish', [WorkflowController::class, 'publish'])->name('workflows.versions.publish');
+
+        Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('analytics/export', [AnalyticsController::class, 'export'])->middleware('throttle:mfa')->name('analytics.export');
+
+        // Ручная проверка и апелляции (этап E).
+        Route::post('calls/{call}/transcript/corrections', [CallAnalysisController::class, 'correctTranscript'])->name('calls.transcript.correct');
+        Route::post('calls/{call}/reviews', [ReviewController::class, 'store'])->name('calls.reviews.store');
+        Route::post('calls/{call}/appeals', [AppealController::class, 'store'])->name('calls.appeals.store');
+        Route::get('review-queue', [ReviewController::class, 'index'])->name('review-queue.index');
+        Route::get('review-queue/{review}/assignees', [ReviewController::class, 'assignees'])->name('review-queue.assignees');
+        Route::post('review-queue/{review}/assign', [ReviewController::class, 'assign'])->name('review-queue.assign');
+        Route::post('review-queue/{review}/take', [ReviewController::class, 'take'])->name('review-queue.take');
+        Route::post('review-queue/{review}/resolve', [ReviewController::class, 'resolve'])->name('review-queue.resolve');
+        Route::post('review-queue/{review}/cancel', [ReviewController::class, 'cancel'])->name('review-queue.cancel');
+        Route::get('appeals', [AppealController::class, 'index'])->name('appeals.index');
+        Route::get('appeals/{appeal}/assignees', [AppealController::class, 'assignees'])->name('appeals.assignees');
+        Route::post('appeals/{appeal}/assign', [AppealController::class, 'assign'])->name('appeals.assign');
+        Route::post('appeals/{appeal}/take', [AppealController::class, 'take'])->name('appeals.take');
+        Route::post('appeals/{appeal}/withdraw', [AppealController::class, 'withdraw'])->name('appeals.withdraw');
+        Route::post('appeals/{appeal}/resolve', [AppealController::class, 'resolve'])->name('appeals.resolve');
 
         Route::get('audit', [AuditEventController::class, 'index'])->name('audit.index');
         Route::get('audit/{auditEvent}', [AuditEventController::class, 'show'])->name('audit.show');

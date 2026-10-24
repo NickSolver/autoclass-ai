@@ -31,9 +31,6 @@ export interface UnavailableModule {
 
 /** Описание недоступных модулей — по разделам ТЗ, без обещаний сроков. */
 export const unavailableModules: Record<string, UnavailableModule> = {
-    review: { title: 'Очередь ручных проверок', stage: 'E', description: 'Задачи на проверку для звонков со статусом «Требуется вмешательство человека», исправления с обязательной причиной и аудитом.' },
-    appeals: { title: 'Апелляции', stage: 'E', description: 'Обращения сотрудников на пересмотр оценки и их рассмотрение независимым контролёром.' },
-    analytics: { title: 'Аналитика', stage: 'E', description: 'KPI по финальным результатам с честными знаменателями, динамика по компаниям, центрам и сотрудникам, экспорт.' },
     integrations: { title: 'Источники звонков', stage: 'F', description: 'Подключаемые модули Calltouch и телефонии «Лягушка». Подключаются после получения документации и тестового доступа.' },
 };
 
@@ -44,9 +41,9 @@ export const navigation: NavSection[] = [
         items: [
             { label: 'Звонки', to: '/calls', permissions: ['calls.view'], icon: 'phone' },
             { label: 'Загрузка', to: '/calls/upload', permissions: ['calls.upload'], icon: 'upload' },
-            { label: 'Ручные проверки', to: '/modules/review', permissions: ['review.assign', 'review.resolve'], stage: 'E', icon: 'inbox' },
-            { label: 'Апелляции', to: '/modules/appeals', permissions: ['appeal.create', 'appeal.resolve'], stage: 'E', icon: 'scale' },
-            { label: 'Аналитика', to: '/modules/analytics', permissions: ['analytics.view'], stage: 'E', icon: 'chart' },
+            { label: 'Ручные проверки', to: '/review', permissions: ['review.assign', 'review.resolve'], icon: 'inbox' },
+            { label: 'Апелляции', to: '/appeals', permissions: ['appeal.create', 'appeal.resolve', 'review.assign'], icon: 'scale' },
+            { label: 'Аналитика', to: '/analytics', permissions: ['analytics.view'], icon: 'chart' },
         ],
     },
     {

@@ -20,6 +20,17 @@ function workflowCaption(w: WorkflowTrace): string {
     return `${name} · запуск ${formatDateTime(w.started_at)}`;
 }
 
+const decisionLabels: Record<string, string> = { confirmed: 'Подтверждено', corrected: 'Исправлено', rejected: 'Апелляция отклонена' };
+
+function originLabel(r: EvaluationResultItem): string {
+    if (r.origin === 'human') return 'исправлено человеком';
+    return r.approval_state === 'human_confirmed' ? 'подтверждено человеком' : 'оценка ИИ';
+}
+
+function originTone(r: EvaluationResultItem): 'info' | 'success' | 'neutral' {
+    return r.origin === 'human' ? 'info' : r.approval_state === 'human_confirmed' ? 'success' : 'neutral';
+}
+
 function evidenceLabel(e: EvidenceItem): string {
     if (e.type === 'quote') return `«${e.quote}»`;
     if (e.type === 'time_range') return `отрезок ${formatTimecode(e.start_ms)}–${formatTimecode(e.end_ms)}`;
@@ -56,9 +67,13 @@ function evidenceLabel(e: EvidenceItem): string {
                             {{ r.business_status === 'full_assessment' ? 'Полная оценка' : 'Требуется вмешательство человека' }}
                         </UiBadge>
                         <UiBadge v-if="r.critical_violation" tone="danger">критическое нарушение</UiBadge>
+                        <UiBadge :tone="originTone(r)" data-testid="result-origin">{{ originLabel(r) }}</UiBadge>
                     </p>
                     <p v-if="r.score === null && r.provisional_score !== null" class="mt-1.5 text-[12px] text-muted">
                         Предварительно по разрешённым критериям: {{ r.provisional_score }} — для проверяющего, не для рейтингов.
+                    </p>
+                    <p v-if="r.origin === 'human'" class="mt-1.5 text-[12px] text-muted">
+                        Ревизия {{ r.revision }}: {{ r.author ?? 'пользователь' }}, {{ formatDateTime(r.created_at) }} — {{ r.change_reason }}
                     </p>
                     <p v-if="r.summary" class="mt-1.5 text-[13px]">{{ r.summary }}</p>
                 </div>
@@ -82,7 +97,10 @@ function evidenceLabel(e: EvidenceItem): string {
                             {{ c.title }}
                             <span class="block text-[11px] text-muted">вес {{ c.weight }}<template v-if="c.required"> · обязательный</template><template v-if="c.critical"> · критический</template></span>
                         </td>
-                        <td class="px-3 py-2.5"><UiBadge :tone="statusTone(c.status)">{{ criterionStatusLabels[c.status] }}</UiBadge></td>
+                        <td class="px-3 py-2.5">
+                            <UiBadge :tone="statusTone(c.status)">{{ criterionStatusLabels[c.status] }}</UiBadge>
+                            <span v-if="c.origin === 'human' && c.previous_status" class="mt-1 block text-[11px] text-muted">исправлено человеком, было: {{ criterionStatusLabels[c.previous_status] ?? c.previous_status }}</span>
+                        </td>
                         <td class="px-3 py-2.5">
                             <p v-if="c.reason">{{ c.reason }}</p>
                             <ul class="mt-1 space-y-1">
@@ -102,6 +120,27 @@ function evidenceLabel(e: EvidenceItem): string {
                     </tr>
                 </tbody>
             </table>
+
+            <details v-if="r.history.length > 1 || r.history.some((h) => h.decisions.length)" class="border-t border-line px-5 py-3 text-[13px]" data-testid="result-history">
+                <summary class="cursor-pointer font-medium">История оценки ({{ r.history.length }} ред.)</summary>
+                <ol class="mt-2 space-y-2">
+                    <li v-for="h in r.history" :key="h.id">
+                        <p>
+                            <span class="font-medium">Ревизия {{ h.revision }}</span> ·
+                            {{ h.origin === 'ai' ? 'оценка ИИ' : `исправил(а) ${h.author ?? 'пользователь'}` }} · {{ formatDateTime(h.created_at) }} · оценка {{ h.score ?? 'нет итога' }}
+                        </p>
+                        <p v-if="h.reason" class="text-muted">Причина: {{ h.reason }}</p>
+                        <ul class="mt-1 space-y-1 pl-4">
+                            <li v-for="(d, i) in h.decisions" :key="i" class="text-[12px]">
+                                {{ decisionLabels[d.decision] }} ({{ d.source === 'appeal' ? 'апелляция' : 'проверка' }}) — {{ d.decider }}, {{ formatDateTime(d.created_at) }}: {{ d.reason }}
+                                <span v-for="(ch, j) in d.changes" :key="j" class="block text-muted">
+                                    {{ ch.title }}: {{ criterionStatusLabels[ch.from] ?? ch.from }} → {{ criterionStatusLabels[ch.to] ?? ch.to }} ({{ ch.comment }})
+                                </span>
+                            </li>
+                        </ul>
+                    </li>
+                </ol>
+            </details>
 
             <div v-if="r.recommendations.length || r.risks.length" class="grid gap-4 border-t border-line px-5 py-3 text-[13px] sm:grid-cols-2">
                 <div v-if="r.recommendations.length">

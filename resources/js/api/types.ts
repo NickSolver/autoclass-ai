@@ -403,7 +403,7 @@ export interface TranscriptSegment {
 
 export interface TranscriptResponse {
     versions: { version: number; source: string; is_synthetic: boolean; created_at: string }[];
-    current: { version: number; source: string; is_synthetic: boolean; created_at: string; segments: TranscriptSegment[] } | null;
+    current: { version: number; source: string; is_synthetic: boolean; created_at: string; reason?: string | null; author?: string | null; segments: TranscriptSegment[] } | null;
 }
 
 export interface EvidenceItem {
@@ -425,6 +425,8 @@ export interface CriterionResultItem {
     critical: boolean;
     status: 'pass' | 'fail' | 'not_applicable' | 'insufficient_data';
     reason: string | null;
+    origin: 'ai' | 'human';
+    previous_status: string | null;
     confidence: number | null;
     evidence_valid: boolean;
     issues: string[];
@@ -434,6 +436,12 @@ export interface CriterionResultItem {
 export interface EvaluationResultItem {
     id: number;
     role: 'primary' | 'additional';
+    origin: 'ai' | 'human';
+    revision: number;
+    author: string | null;
+    change_reason: string | null;
+    created_at: string;
+    history: ResultRevision[];
     checklist: { name: string; version: number; is_demo: boolean };
     score: number | null;
     provisional_score: number | null;
@@ -450,6 +458,9 @@ export interface EvaluationResultItem {
 
 export interface AnalysisResponse {
     workflow?: WorkflowTrace | null;
+    review: ReviewItem | null;
+    appeals: AppealItem[];
+    can: { request_review: boolean; appeal: boolean; confirm: boolean; correct: boolean; edit_transcript: boolean };
     runs: { id: number; status: string; driver: string; started_at: string }[];
     current: {
         id: number;
@@ -460,6 +471,7 @@ export interface AnalysisResponse {
         started_at: string;
         finished_at: string | null;
         error_message: string | null;
+        is_current_run: boolean;
         synthetic: boolean;
         results: EvaluationResultItem[];
     } | null;
@@ -620,4 +632,88 @@ export interface SimulationResult {
     context: Record<string, unknown>;
     finished: boolean;
     error: string | null;
+}
+
+/* Этап E — проверки, апелляции, аналитика. */
+
+export interface ReviewItem {
+    id: number;
+    call_id: number;
+    status: 'pending' | 'in_progress' | 'resolved' | 'cancelled';
+    source: 'ai' | 'workflow' | 'manual' | 'appeal';
+    source_label: string;
+    reason: string;
+    assignee: { id: number; name: string } | null;
+    resolver: string | null;
+    resolution: 'confirmed' | 'corrected' | 'cancelled' | null;
+    resolution_comment: string | null;
+    created_at: string;
+    resolved_at: string | null;
+    lock_version: number;
+    can: { assign: boolean; cancel: boolean; take: boolean; resolve: boolean };
+    call?: { id: number; direction: string; occurred_at: string; org: { company: string | null; dealership: string | null; department: string | null; employee: string | null } };
+}
+
+export interface AppealItem {
+    id: number;
+    call_id: number;
+    status: 'open' | 'in_review' | 'accepted' | 'rejected' | 'withdrawn';
+    reason: string;
+    result: { id: number; checklist: string; version: number; role: string; score: number | null };
+    author: string;
+    assignee: { id: number; name: string } | null;
+    resolver: string | null;
+    resolution_comment: string | null;
+    created_at: string;
+    resolved_at: string | null;
+    lock_version: number;
+    conflict: string | null;
+    can: { assign: boolean; take: boolean; resolve: boolean; withdraw: boolean };
+}
+
+export interface ResultRevision {
+    id: number;
+    revision: number;
+    origin: 'ai' | 'human';
+    score: number | null;
+    business_status: string;
+    approval_state: string;
+    author: string | null;
+    reason: string | null;
+    created_at: string;
+    decisions: {
+        decision: 'confirmed' | 'corrected' | 'rejected';
+        reason: string;
+        changes: { code: string; title: string; from: string; to: string; comment: string }[];
+        source: 'review' | 'appeal';
+        decider: string;
+        created_at: string;
+    }[];
+}
+
+export interface CriterionChange {
+    criterion_result_id: number;
+    status: CriterionResultItem['status'];
+    comment: string;
+}
+
+export interface AnalyticsStats {
+    evaluated: number;
+    scored: number;
+    average: number | null;
+    critical: number;
+    critical_share: number | null;
+}
+
+export interface AnalyticsReport {
+    period: { from: string; to: string; timezone: string };
+    volume: { total: number; excluded: number; failed: number; completed: number; in_progress: number; evaluated: number; completed_without_evaluation: number };
+    quality: AnalyticsStats & { unscored: number; finality: { ai: number; human_confirmed: number; human_corrected: number } };
+    checklists: Record<'primary' | 'additional', (AnalyticsStats & { checklist_id: number; name: string; is_demo: boolean; version: number })[]>;
+    dynamics: { unit: 'day' | 'week'; points: (AnalyticsStats & { date: string })[] };
+    breakdown: { group_by: string; rows: (AnalyticsStats & { id: number | null; name: string; calls: number })[] };
+    review: { pending: number; in_progress: number; resolved: number; appeals_open: number; appeals_accepted: number; appeals_rejected: number };
+    cost: { requests: number; cost: number | null; currency: string; unpriced_requests: number; avg_evaluate_ms: number | null; avg_transcribe_ms: number | null };
+    conversion: { conversation_agreement: null; crm_confirmed_conversion: null };
+    can: { export: boolean };
 }
