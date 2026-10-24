@@ -1,5 +1,17 @@
 import { http } from './http';
 import type {
+    ChecklistChange,
+    ChecklistDetail,
+    ChecklistSummary,
+    ChecklistTestResult,
+    ChecklistVersion,
+    GraphError,
+    SimulationResult,
+    WorkflowCatalog,
+    WorkflowDetail,
+    WorkflowGraph,
+    WorkflowSummary,
+    WorkflowVersion,
     AnalysisResponse,
     ProviderCallLog,
     ProviderConfig,
@@ -170,4 +182,34 @@ export const aiApi = {
     setExternalProcessing: async (enabled: boolean, reason: string) =>
         (await http.put<ProvidersOverview['external_processing']>('/ai-settings/external-processing', { enabled, reason })).data,
     calls: (query?: Query) => get<Paginated<ProviderCallLog>>('/ai-provider-calls', query),
+};
+
+const put = async <T>(url: string, body: Payload) => (await http.put<T>(url, body)).data;
+
+export const checklistsApi = {
+    list: () => get<{ data: ChecklistSummary[] }>('/checklists'),
+    show: (id: number, version?: number) => get<ChecklistDetail>(`/checklists/${id}`, { version }),
+    create: (body: Payload) => post<ChecklistSummary>('/checklists', body),
+    update: (id: number, body: Payload) => patch<ChecklistSummary>(`/checklists/${id}`, body),
+    saveDraft: (id: number, versionId: number, body: Payload) => put<ChecklistVersion>(`/checklists/${id}/versions/${versionId}`, body),
+    publish: (id: number, versionId: number) => post<ChecklistVersion>(`/checklists/${id}/versions/${versionId}/publish`),
+    newDraft: (id: number) => post<ChecklistVersion>(`/checklists/${id}/versions`),
+    compare: (id: number, from: number, to: number) =>
+        get<{ from: number; to: number; changes: ChecklistChange[] }>(`/checklists/${id}/compare`, { from, to }),
+    test: (id: number, versionId: number, callId: number) => post<ChecklistTestResult>(`/checklists/${id}/versions/${versionId}/test`, { call_id: callId }),
+};
+
+export const workflowsApi = {
+    catalog: (companyId?: number | null) => get<WorkflowCatalog>('/workflows/catalog', { company_id: companyId }),
+    list: () => get<{ data: WorkflowSummary[] }>('/workflows'),
+    show: (id: number, version?: number) => get<WorkflowDetail>(`/workflows/${id}`, { version }),
+    create: (body: Payload) => post<WorkflowSummary>('/workflows', body),
+    update: (id: number, body: Payload) => patch<WorkflowSummary>(`/workflows/${id}`, body),
+    saveDraft: (id: number, versionId: number, graph: WorkflowGraph, lockVersion: number) =>
+        put<WorkflowVersion>(`/workflows/${id}/versions/${versionId}`, { graph: graph as unknown as Payload, lock_version: lockVersion }),
+    validate: (id: number, versionId: number) => post<{ errors: GraphError[] }>(`/workflows/${id}/versions/${versionId}/validate`),
+    simulate: (id: number, versionId: number, body: { input?: Record<string, unknown>; call_id?: number | null }) =>
+        post<SimulationResult>(`/workflows/${id}/versions/${versionId}/simulate`, body),
+    publish: (id: number, versionId: number) => post<WorkflowVersion>(`/workflows/${id}/versions/${versionId}/publish`),
+    newDraft: (id: number) => post<WorkflowVersion>(`/workflows/${id}/versions`),
 };

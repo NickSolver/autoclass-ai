@@ -3,6 +3,7 @@
 use App\Domain\AiProviders\Models\ProviderConfig;
 use App\Domain\Audit\Models\AuditEvent;
 use App\Domain\CallIntake\Models\Call;
+use App\Domain\Evaluation\Models\Checklist;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\Permission;
 use App\Domain\Organization\Models\Company;
@@ -10,6 +11,7 @@ use App\Domain\Organization\Models\CompanyGroup;
 use App\Domain\Organization\Models\Dealership;
 use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\Employee;
+use App\Domain\Workflow\Models\WorkflowDefinition;
 use App\Http\Controllers\Api\V1\AiProviderCallController;
 use App\Http\Controllers\Api\V1\AiProviderController;
 use App\Http\Controllers\Api\V1\AuditEventController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\Api\V1\CallAnalysisController;
 use App\Http\Controllers\Api\V1\CallAudioController;
 use App\Http\Controllers\Api\V1\CallController;
 use App\Http\Controllers\Api\V1\CallUploadController;
+use App\Http\Controllers\Api\V1\ChecklistController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CompanyGroupController;
 use App\Http\Controllers\Api\V1\DealershipController;
@@ -32,6 +35,7 @@ use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SessionController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserRoleScopeController;
+use App\Http\Controllers\Api\V1\WorkflowController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,6 +58,10 @@ Route::bind('user', $visible(User::class, Permission::UsersView));
 Route::bind('auditEvent', $visible(AuditEvent::class, Permission::AuditView));
 Route::bind('call', $visible(Call::class, Permission::CallsView));
 Route::bind('provider', fn (string $value) => ProviderConfig::query()->findOrFail((int) $value));
+Route::bind('checklist', fn (string $value) => Checklist::query()->findOrFail((int) $value));
+Route::bind('checklistVersion', fn (string $value) => request()->route('checklist')->versions()->findOrFail((int) $value));
+Route::bind('workflow', fn (string $value) => WorkflowDefinition::query()->findOrFail((int) $value));
+Route::bind('workflowVersion', fn (string $value) => request()->route('workflow')->versions()->findOrFail((int) $value));
 Route::bind('assignment', fn (string $value) => request()->route('employee')->assignments()->findOrFail((int) $value));
 Route::bind('roleScope', fn (string $value) => request()->route('user')->roleScopes()->findOrFail((int) $value));
 
@@ -134,6 +142,28 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('ai-providers/{provider}/test', [AiProviderController::class, 'test'])->middleware('throttle:mfa')->name('ai-providers.test');
         Route::put('ai-settings/external-processing', [AiProviderController::class, 'externalProcessing'])->middleware('mfa.recent')->name('ai-settings.external');
         Route::get('ai-provider-calls', AiProviderCallController::class)->name('ai-provider-calls.index');
+
+        // Конструкторы (этап D).
+        Route::get('checklists', [ChecklistController::class, 'index'])->name('checklists.index');
+        Route::post('checklists', [ChecklistController::class, 'store'])->name('checklists.store');
+        Route::get('checklists/{checklist}', [ChecklistController::class, 'show'])->name('checklists.show');
+        Route::patch('checklists/{checklist}', [ChecklistController::class, 'update'])->name('checklists.update');
+        Route::get('checklists/{checklist}/compare', [ChecklistController::class, 'compare'])->name('checklists.compare');
+        Route::post('checklists/{checklist}/versions', [ChecklistController::class, 'newDraft'])->name('checklists.versions.store');
+        Route::put('checklists/{checklist}/versions/{checklistVersion}', [ChecklistController::class, 'saveDraft'])->name('checklists.versions.update');
+        Route::post('checklists/{checklist}/versions/{checklistVersion}/publish', [ChecklistController::class, 'publish'])->name('checklists.versions.publish');
+        Route::post('checklists/{checklist}/versions/{checklistVersion}/test', [ChecklistController::class, 'test'])->middleware('throttle:mfa')->name('checklists.versions.test');
+
+        Route::get('workflows/catalog', [WorkflowController::class, 'catalog'])->name('workflows.catalog');
+        Route::get('workflows', [WorkflowController::class, 'index'])->name('workflows.index');
+        Route::post('workflows', [WorkflowController::class, 'store'])->name('workflows.store');
+        Route::get('workflows/{workflow}', [WorkflowController::class, 'show'])->name('workflows.show');
+        Route::patch('workflows/{workflow}', [WorkflowController::class, 'update'])->name('workflows.update');
+        Route::post('workflows/{workflow}/versions', [WorkflowController::class, 'newDraft'])->name('workflows.versions.store');
+        Route::put('workflows/{workflow}/versions/{workflowVersion}', [WorkflowController::class, 'saveDraft'])->name('workflows.versions.update');
+        Route::post('workflows/{workflow}/versions/{workflowVersion}/validate', [WorkflowController::class, 'validateVersion'])->name('workflows.versions.validate');
+        Route::post('workflows/{workflow}/versions/{workflowVersion}/simulate', [WorkflowController::class, 'simulate'])->name('workflows.versions.simulate');
+        Route::post('workflows/{workflow}/versions/{workflowVersion}/publish', [WorkflowController::class, 'publish'])->name('workflows.versions.publish');
 
         Route::get('audit', [AuditEventController::class, 'index'])->name('audit.index');
         Route::get('audit/{auditEvent}', [AuditEventController::class, 'show'])->name('audit.show');

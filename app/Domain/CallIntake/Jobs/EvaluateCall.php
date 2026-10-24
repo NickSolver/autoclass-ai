@@ -8,6 +8,7 @@ use App\Domain\CallIntake\CallStatus;
 use App\Domain\CallIntake\Models\Call;
 use App\Domain\Evaluation\Services\AnalysisService;
 use App\Domain\Transcription\Models\TranscriptVersion;
+use App\Domain\Workflow\Services\WorkflowRuntime;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -35,7 +36,7 @@ final class EvaluateCall implements ShouldBeUnique, ShouldQueue
         return 'evaluate:'.$this->callId;
     }
 
-    public function handle(ProviderSelector $selector, AnalysisService $analysis): void
+    public function handle(ProviderSelector $selector, AnalysisService $analysis, WorkflowRuntime $workflows): void
     {
         $call = Call::query()->find($this->callId);
         if ($call === null || ! in_array($call->status, [CallStatus::AwaitingEvaluation, CallStatus::Classifying, CallStatus::Evaluating], true)) {
@@ -50,14 +51,21 @@ final class EvaluateCall implements ShouldBeUnique, ShouldQueue
         $attempt = $this->startAttempt($call, self::STEP);
         $call->transitionTo(CallStatus::Classifying);
         try {
-            $call->transitionTo(CallStatus::Evaluating);
-            $analysis->analyze($call, $transcript, $config, $this->attempts());
+            // Классификация — бизнес-процесс. Экземпляр, уже ждущий анализа, продолжает свою закреплённую
+            // версию (повтор шага не перезапускает маршрут и не подхватывает новую публикацию).
+            $run = $workflows->pending($call, $transcript) ?? $workflows->start($call, $transcript);
+            if ($run->status === 'waiting_analysis') {
+                $call->transitionTo(CallStatus::Evaluating);
+                $analysisRun = $analysis->analyze($call, $transcript, $config, $this->attempts(), $workflows->routes($run));
+                $workflows->finish($run, $call, $analysisRun);
+            }
         } catch (Throwable $e) {
             $this->handleFailure($call, $attempt, $e, CallStatus::AwaitingEvaluation);
 
             return;
         }
         $this->succeed($attempt);
+        // Процесс мог решить не оценивать звонок — шаг всё равно завершён.
         $call->transitionTo(CallStatus::Completed);
     }
 }

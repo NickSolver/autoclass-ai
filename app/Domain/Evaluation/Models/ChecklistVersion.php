@@ -18,12 +18,14 @@ use Illuminate\Support\Carbon;
  * @property string $scoring_rule
  * @property bool $zero_on_critical
  * @property ?Carbon $published_at
+ * @property ?string $notes
+ * @property int $lock_version
  * @property-read Checklist $checklist
  * @property-read Collection<int, ChecklistCriterion> $criteria
  */
 class ChecklistVersion extends Model
 {
-    protected $fillable = ['checklist_id', 'version', 'status', 'scoring_rule', 'zero_on_critical', 'published_at', 'published_by'];
+    protected $fillable = ['checklist_id', 'version', 'status', 'scoring_rule', 'zero_on_critical', 'notes', 'created_by', 'published_at', 'published_by'];
 
     protected function casts(): array
     {

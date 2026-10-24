@@ -15,6 +15,7 @@ declare module 'vue-router' {
 
 const org = { label: 'Организация' };
 const access = { label: 'Доступ' };
+const setup = { label: 'Настройка оценки' };
 
 const routes: RouteRecordRaw[] = [
     { path: '/login', name: 'login', component: () => import('@/views/auth/LoginView.vue'), meta: { public: true, layout: 'auth', title: 'Вход' } },
@@ -44,7 +45,11 @@ const routes: RouteRecordRaw[] = [
     { path: '/calls/upload', name: 'calls-upload', component: () => import('@/views/calls/CallUploadView.vue'), meta: { title: 'Загрузка звонков', permissions: ['calls.upload'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Загрузка' }] } },
     { path: '/calls/:id(\\d+)', name: 'call', component: () => import('@/views/calls/CallDetailView.vue'), props: (r) => ({ id: Number(r.params.id) }), meta: { title: 'Звонок', permissions: ['calls.view'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Карточка звонка' }] } },
 
-    { path: '/ai-providers', name: 'ai-providers', component: () => import('@/views/ai/AiProvidersView.vue'), meta: { title: 'ИИ-провайдеры', permissions: ['ai.manage', 'ai.logs.view'], breadcrumbs: [{ label: 'Настройка оценки' }, { label: 'ИИ-провайдеры' }] } },
+    { path: '/workflows', name: 'workflows', component: () => import('@/views/workflows/WorkflowsView.vue'), meta: { title: 'Бизнес-процессы', permissions: ['workflow.design', 'workflow.publish'], breadcrumbs: [setup, { label: 'Бизнес-процессы' }] } },
+    { path: '/workflows/:id(\\d+)', name: 'workflow', component: () => import('@/views/workflows/WorkflowEditorView.vue'), props: (r) => ({ id: Number(r.params.id) }), meta: { title: 'Бизнес-процесс', permissions: ['workflow.design', 'workflow.publish'], breadcrumbs: [setup, { label: 'Бизнес-процессы', to: '/workflows' }, { label: 'Редактор' }] } },
+    { path: '/checklists', name: 'checklists', component: () => import('@/views/checklists/ChecklistsView.vue'), meta: { title: 'Чек-листы', permissions: ['checklist.design', 'checklist.publish'], breadcrumbs: [setup, { label: 'Чек-листы' }] } },
+    { path: '/checklists/:id(\\d+)', name: 'checklist', component: () => import('@/views/checklists/ChecklistEditorView.vue'), props: (r) => ({ id: Number(r.params.id) }), meta: { title: 'Чек-лист', permissions: ['checklist.design', 'checklist.publish'], breadcrumbs: [setup, { label: 'Чек-листы', to: '/checklists' }, { label: 'Редактор' }] } },
+    { path: '/ai-providers', name: 'ai-providers', component: () => import('@/views/ai/AiProvidersView.vue'), meta: { title: 'ИИ-провайдеры', permissions: ['ai.manage', 'ai.logs.view'], breadcrumbs: [setup, { label: 'ИИ-провайдеры' }] } },
 
     { path: '/modules/:module', name: 'module', component: () => import('@/views/ModuleUnavailableView.vue'), props: true, meta: { title: 'Модуль в разработке' } },
     { path: '/forbidden', name: 'forbidden', component: () => import('@/views/ForbiddenView.vue'), meta: { title: 'Нет доступа' } },

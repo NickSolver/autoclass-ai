@@ -48,6 +48,9 @@ use Illuminate\Support\Carbon;
  * @property CallStatus $status
  * @property ?Carbon $status_changed_at
  * @property bool $review_required
+ * @property ?string $review_reason
+ * @property ?list<string> $labels
+ * @property string $priority
  * @property ?string $last_error
  * @property ?string $excluded_reason
  * @property ?Carbon $excluded_at
@@ -89,6 +92,7 @@ class Call extends Model
             'occurred_at' => 'datetime',
             'duration_ms' => 'integer',
             'review_required' => 'boolean',
+            'labels' => 'array',
         ];
     }
 

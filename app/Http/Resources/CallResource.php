@@ -52,6 +52,9 @@ class CallResource extends JsonResource
             'original' => $this->whenLoaded('original', fn () => $this->original ? $this->audio($this->original) : null),
             'normalized' => $this->whenLoaded('normalized', fn () => $this->normalized ? $this->audio($this->normalized) : null),
             'review_required' => $this->review_required,
+            'review_reason' => $this->review_reason,
+            'labels' => $this->labels ?? [],
+            'priority' => $this->priority,
             // Оценка основного чек-листа — только тем, кто видит оценки этого звонка.
             'evaluation' => $this->whenLoaded('primaryEvaluation', fn () => $this->primaryEvaluation && $this->isVisibleTo($actor, Permission::EvaluationView) ? [
                 'score' => $this->primaryEvaluation->score,

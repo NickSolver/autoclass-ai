@@ -26,7 +26,6 @@ final class AnalysisService
     private const SCHEMA_RETRIES = 1;
 
     public function __construct(
-        private readonly ChecklistRouter $router,
         private readonly PromptBuilder $prompts,
         private readonly ResponseValidator $validator,
         private readonly ScoreCalculator $scores,
@@ -34,11 +33,14 @@ final class AnalysisService
         private readonly ProviderInvoker $invoker,
     ) {}
 
-    /** @throws ProviderException */
-    public function analyze(Call $call, TranscriptVersion $transcript, ProviderConfig $config, int $attempt): AnalysisRun
+    /**
+     * @param  list<array{role: string, version: ChecklistVersion, reason: string}>  $routes  маршрут от бизнес-процесса
+     *
+     * @throws ProviderException
+     */
+    public function analyze(Call $call, TranscriptVersion $transcript, ProviderConfig $config, int $attempt, array $routes): AnalysisRun
     {
         $transcript->loadMissing('segments');
-        $routes = $this->router->route($call);
         $run = AnalysisRun::create([
             'call_id' => $call->id,
             'transcript_version_id' => $transcript->id,
@@ -69,10 +71,37 @@ final class AnalysisService
                 $this->store($run, $call, $route['role'], $route['version'], $checked);
             }
             $run->update(['status' => 'succeeded', 'finished_at' => now()]);
-            $call->forceFill(['review_required' => $run->results()->where('business_status', EvaluationResult::INTERVENTION)->exists()])->save();
+            // Вмешательство по результату добавляется к задачам, которые уже поставил бизнес-процесс.
+            if ($run->results()->where('business_status', EvaluationResult::INTERVENTION)->exists()) {
+                $call->refresh()->forceFill([
+                    'review_required' => true,
+                    'review_reason' => $call->review_reason ?? 'Оценка требует вмешательства человека.',
+                ])->save();
+            }
         });
 
         return $run->load('results');
+    }
+
+    /**
+     * Пробная оценка версии чек-листа на звонке без сохранения результата (ТЗ, разд. 7.3:
+     * «тестирование на эталонном звонке»). Вызов провайдера записывается в журнал.
+     *
+     * @return array{criteria: list<array<string, mixed>>, summary: ?string, risks: list<string>, recommendations: list<string>, score: array<string, mixed>}
+     *
+     * @throws ProviderException
+     */
+    public function preview(Call $call, TranscriptVersion $transcript, ProviderConfig $config, ChecklistVersion $version): array
+    {
+        $transcript->loadMissing('segments');
+        $version->loadMissing(['checklist', 'criteria']);
+        $checked = $this->evaluateChecklist($call, $transcript, $config, $version, 1);
+        $checked['score'] = $this->scores->calculate(array_map(fn (array $c) => [
+            'weight' => (float) $c['criterion']->weight, 'status' => $c['status'], 'required' => $c['criterion']->is_required,
+            'critical' => $c['criterion']->is_critical, 'evidence_valid' => $c['evidence_valid'],
+        ], $checked['criteria']), $version->zero_on_critical);
+
+        return $checked;
     }
 
     /**

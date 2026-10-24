@@ -34,8 +34,6 @@ export const unavailableModules: Record<string, UnavailableModule> = {
     review: { title: 'Очередь ручных проверок', stage: 'E', description: 'Задачи на проверку для звонков со статусом «Требуется вмешательство человека», исправления с обязательной причиной и аудитом.' },
     appeals: { title: 'Апелляции', stage: 'E', description: 'Обращения сотрудников на пересмотр оценки и их рассмотрение независимым контролёром.' },
     analytics: { title: 'Аналитика', stage: 'E', description: 'KPI по финальным результатам с честными знаменателями, динамика по компаниям, центрам и сотрудникам, экспорт.' },
-    workflows: { title: 'Бизнес-процессы', stage: 'D', description: 'Визуальный конструктор маршрутизации звонков: условия, ветвления, выбор основного и дополнительных чек-листов, публикация версий.' },
-    checklists: { title: 'Чек-листы', stage: 'D', description: 'Конструктор версионируемых чек-листов: критерии, веса, обязательность, критические признаки, тестирование на эталонном звонке.' },
     integrations: { title: 'Источники звонков', stage: 'F', description: 'Подключаемые модули Calltouch и телефонии «Лягушка». Подключаются после получения документации и тестового доступа.' },
 };
 
@@ -54,8 +52,8 @@ export const navigation: NavSection[] = [
     {
         title: 'Настройка оценки',
         items: [
-            { label: 'Бизнес-процессы', to: '/modules/workflows', permissions: ['workflow.design', 'workflow.publish'], stage: 'D', icon: 'flow' },
-            { label: 'Чек-листы', to: '/modules/checklists', permissions: ['checklist.design', 'checklist.publish'], stage: 'D', icon: 'checklist' },
+            { label: 'Бизнес-процессы', to: '/workflows', permissions: ['workflow.design', 'workflow.publish'], icon: 'flow' },
+            { label: 'Чек-листы', to: '/checklists', permissions: ['checklist.design', 'checklist.publish'], icon: 'checklist' },
             { label: 'Источники звонков', to: '/modules/integrations', permissions: ['integrations.manage'], stage: 'F', icon: 'plug' },
             { label: 'ИИ-провайдеры', to: '/ai-providers', permissions: ['ai.manage', 'ai.logs.view'], icon: 'cpu' },
         ],

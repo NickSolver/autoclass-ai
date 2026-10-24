@@ -293,6 +293,9 @@ export interface Call {
     attempts?: CallAttempt[];
     created_at: string;
     review_required: boolean;
+    review_reason: string | null;
+    labels: string[];
+    priority: 'normal' | 'high' | 'urgent';
     evaluation?: { score: number | null; provisional_score: number | null; business_status: string; critical_violation: boolean } | null;
     can: { update: boolean; reprocess: boolean; exclude: boolean; play: boolean; download: boolean };
 }
@@ -446,6 +449,7 @@ export interface EvaluationResultItem {
 }
 
 export interface AnalysisResponse {
+    workflow?: WorkflowTrace | null;
     runs: { id: number; status: string; driver: string; started_at: string }[];
     current: {
         id: number;
@@ -459,4 +463,161 @@ export interface AnalysisResponse {
         synthetic: boolean;
         results: EvaluationResultItem[];
     } | null;
+}
+
+export interface WorkflowTrace {
+    id: number;
+    status: 'running' | 'waiting_analysis' | 'completed' | 'failed';
+    name: string | null;
+    version: number | null;
+    fallback: boolean;
+    started_at: string;
+    finished_at: string | null;
+    error_message: string | null;
+    steps: { node_id: string; type: string; label: string; branch: string | null }[];
+}
+
+/* Этап D — конструкторы чек-листов и бизнес-процессов. */
+
+export type VersionStatus = 'draft' | 'published' | 'archived';
+
+export interface DesignSummary {
+    id: number;
+    name: string;
+    description: string | null;
+    is_archived: boolean;
+    company: { id: number; name: string } | null;
+    published_version: number | null;
+    has_draft: boolean;
+}
+
+export interface ChecklistSummary extends DesignSummary {
+    code: string;
+    is_demo: boolean;
+}
+
+export interface ChecklistCriterion {
+    id?: number;
+    code: string;
+    title: string;
+    description: string | null;
+    ai_hint: string | null;
+    weight: number;
+    is_required: boolean;
+    is_critical: boolean;
+    applicability: string | null;
+}
+
+export interface ChecklistVersion {
+    id: number;
+    version: number;
+    status: VersionStatus;
+    zero_on_critical: boolean;
+    notes: string | null;
+    lock_version: number;
+    published_at: string | null;
+    criteria: ChecklistCriterion[];
+}
+
+export interface ChecklistDetail extends ChecklistSummary {
+    versions: { id: number; version: number; status: VersionStatus; published_at: string | null; criteria_count: number }[];
+    selected: ChecklistVersion | null;
+    can: { design: boolean; publish: boolean };
+}
+
+export interface ChecklistChange {
+    code: string;
+    change: 'added' | 'removed' | 'changed';
+    before: Partial<ChecklistCriterion> | null;
+    after: Partial<ChecklistCriterion> | null;
+}
+
+export interface ChecklistTestResult {
+    synthetic: boolean;
+    score: { score: number | null; provisional_score: number | null; business_status: string; critical_violation: boolean };
+    summary: string | null;
+    criteria: { title: string; status: CriterionResultItem['status']; reason: string | null; evidence_valid: boolean; issues: string[] }[];
+}
+
+export interface GraphNode {
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+    id: string;
+    source: string;
+    sourceHandle?: string | null;
+    target: string;
+    targetHandle?: string | null;
+}
+
+export interface WorkflowGraph {
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+}
+
+export interface WorkflowSummary extends DesignSummary {
+    trigger: string;
+    priority: number;
+    updated_at: string | null;
+}
+
+export interface WorkflowVersion {
+    id: number;
+    version: number;
+    status: VersionStatus;
+    graph: WorkflowGraph;
+    lock_version: number;
+    published_at: string | null;
+}
+
+export interface WorkflowDetail extends WorkflowSummary {
+    versions: { id: number; version: number; status: VersionStatus; published_at: string | null }[];
+    selected: WorkflowVersion | null;
+    can: { design: boolean; publish: boolean };
+}
+
+export type FieldType = 'enum' | 'org' | 'number' | 'bool';
+
+export interface CatalogField {
+    label: string;
+    type: FieldType;
+    phase: 'before_analysis' | 'after_analysis';
+    values?: Record<string, string>;
+    org?: 'company' | 'dealership' | 'department';
+}
+
+export interface WorkflowCatalog {
+    node_types: Record<string, { label: string; group: string; available: boolean; description: string }>;
+    triggers: Record<string, { label: string; available: boolean }>;
+    priorities: Record<string, string>;
+    fields: Record<string, CatalogField>;
+    operators: Record<FieldType, string[]>;
+    operator_labels: Record<string, string>;
+    checklists: { id: number; name: string; is_demo: boolean; published_version: number | null }[];
+    org: Record<'company' | 'dealership' | 'department', { id: number; name: string }[]>;
+}
+
+export interface GraphError {
+    node_id: string | null;
+    message: string;
+}
+
+export interface SimulationResult {
+    errors: GraphError[];
+    trace: { node_id: string; node_type: string; branch: string | null; output: Record<string, unknown> }[];
+    plan: {
+        primary_checklist_id: number | null;
+        additional_checklist_ids: number[];
+        analysis_requested: boolean;
+        review_reasons: string[];
+        labels: string[];
+        priority: string | null;
+    };
+    context: Record<string, unknown>;
+    finished: boolean;
+    error: string | null;
 }

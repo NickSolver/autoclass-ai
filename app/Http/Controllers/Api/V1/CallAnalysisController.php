@@ -10,6 +10,9 @@ use App\Domain\Evaluation\Models\Evidence;
 use App\Domain\Identity\Permission;
 use App\Domain\Transcription\Models\TranscriptSegment;
 use App\Domain\Transcription\Models\TranscriptVersion;
+use App\Domain\Workflow\Graph\NodeTypes;
+use App\Domain\Workflow\Models\WorkflowNodeRun;
+use App\Domain\Workflow\Models\WorkflowRun;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,7 +72,40 @@ class CallAnalysisController extends Controller
                 'synthetic' => $synthetic,
                 'results' => $selected->results->map(fn (EvaluationResult $e) => $this->result($e))->values(),
             ] : null,
+            'workflow' => $this->workflow($call),
         ]);
+    }
+
+    /**
+     * Последний проход бизнес-процесса: версия процесса и пройденные узлы.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function workflow(Call $call): ?array
+    {
+        $run = WorkflowRun::query()->where('call_id', $call->id)->with(['version.definition', 'nodeRuns'])->latest('id')->first();
+        if ($run === null) {
+            return null;
+        }
+        $types = NodeTypes::all();
+        $graphNodes = collect($run->version->graph['nodes'] ?? [])->keyBy('id');
+
+        return [
+            'id' => $run->id,
+            'status' => $run->status,
+            'name' => $run->version?->definition->name,
+            'version' => $run->version?->version,
+            'fallback' => $run->workflow_version_id === null,
+            'started_at' => $run->started_at->toIso8601String(),
+            'finished_at' => $run->finished_at?->toIso8601String(),
+            'error_message' => $run->error_message,
+            'steps' => $run->nodeRuns->map(fn (WorkflowNodeRun $n) => [
+                'node_id' => $n->node_id,
+                'type' => $n->node_type,
+                'label' => $graphNodes->get($n->node_id)['data']['label'] ?? $types[$n->node_type]['label'] ?? $n->node_type,
+                'branch' => $n->branch,
+            ])->values(),
+        ];
     }
 
     /** @return array<string, mixed> */

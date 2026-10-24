@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AnalysisResponse, EvaluationResultItem, EvidenceItem } from '@/api/types';
+import type { AnalysisResponse, EvaluationResultItem, EvidenceItem, WorkflowTrace } from '@/api/types';
 import UiAlert from '@/components/ui/UiAlert.vue';
 import UiBadge from '@/components/ui/UiBadge.vue';
 import UiCard from '@/components/ui/UiCard.vue';
@@ -13,6 +13,11 @@ const statusTone = (s: string) => (s === 'pass' ? 'success' : s === 'fail' ? 'da
 function scoreColor(r: EvaluationResultItem): string {
     const v = r.score ?? r.provisional_score ?? 0;
     return v >= 80 ? 'text-emerald-600' : v >= 50 ? 'text-amber-600' : 'text-red-600';
+}
+
+function workflowCaption(w: WorkflowTrace): string {
+    const name = w.fallback ? 'Правило по умолчанию' : `${w.name ?? 'Процесс'} · версия ${w.version}`;
+    return `${name} · запуск ${formatDateTime(w.started_at)}`;
 }
 
 function evidenceLabel(e: EvidenceItem): string {
@@ -115,5 +120,14 @@ function evidenceLabel(e: EvidenceItem): string {
             · шаблон запроса {{ analysis.current.prompt_version }}.
             <template v-for="(route, i) in analysis.current.routing" :key="i"><br />{{ route.checklist }} (версия {{ route.version }}): {{ route.reason }}</template>
         </p>
+        <UiCard v-if="analysis.workflow" title="Бизнес-процесс" :description="workflowCaption(analysis.workflow)" data-testid="workflow-trace">
+            <UiAlert v-if="analysis.workflow.error_message" tone="danger" class="mb-3">{{ analysis.workflow.error_message }}</UiAlert>
+            <ol class="flex flex-wrap items-center gap-1.5 text-[12px]">
+                <li v-for="(step, i) in analysis.workflow.steps" :key="i" class="flex items-center gap-1.5">
+                    <span v-if="i" class="text-muted">→</span>
+                    <span class="rounded border border-line px-1.5 py-0.5">{{ step.label }}<template v-if="step.branch === 'true'"> · да</template><template v-else-if="step.branch === 'false'"> · нет</template></span>
+                </li>
+            </ol>
+        </UiCard>
     </template>
 </template>

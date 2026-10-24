@@ -187,6 +187,10 @@ async function saveEdit(): Promise<void> {
                 <UiBadge :tone="callStatusTone(call.status.code)">
                     <UiSpinner v-if="inProgress" :size="12" />{{ call.status.label }}
                 </UiBadge>
+                <UiBadge v-if="call.priority !== 'normal'" :tone="call.priority === 'urgent' ? 'danger' : 'warning'" data-testid="call-priority">
+                    {{ call.priority === 'urgent' ? 'срочный' : 'высокий приоритет' }}
+                </UiBadge>
+                <UiBadge v-for="label in call.labels" :key="label" tone="info" data-testid="call-label">{{ label }}</UiBadge>
                 <a v-if="call.can.download" :href="callsApi.audioUrl(call.id, true)" download>
                     <UiButton><AppIcon name="download" :size="16" /> Скачать</UiButton>
                 </a>
@@ -202,6 +206,9 @@ async function saveEdit(): Promise<void> {
         <UiAlert v-if="call.status.code === 'failed'" tone="danger" title="Обработка не выполнена" class="mb-5">
             {{ call.last_error ?? 'Причина не указана.' }}
             <template v-if="call.can.reprocess"> Можно запустить обработку повторно — запись сохранена.</template>
+        </UiAlert>
+        <UiAlert v-if="call.review_required" tone="warning" title="Требуется ручная проверка" class="mb-5" data-testid="call-review">
+            {{ call.review_reason ?? 'Оценка требует вмешательства человека.' }}
         </UiAlert>
         <UiAlert v-if="call.excluded" tone="warning" title="Исключён из обработки" class="mb-5">
             {{ formatDateTime(call.excluded.at) }}. Причина: {{ call.excluded.reason }}

@@ -126,6 +126,7 @@ enum Permission: string
                 self::CallsView, self::CallsUpload, self::CallsDelete, self::CallsReprocess,
                 self::AudioPlay, self::AudioDownload,
                 self::TranscriptView, self::EvaluationView, self::AiManage, self::AiLogsView,
+                self::WorkflowDesign, self::WorkflowPublish, self::ChecklistDesign, self::ChecklistPublish,
             ], true);
     }
 }
