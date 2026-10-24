@@ -717,3 +717,75 @@ export interface AnalyticsReport {
     conversion: { conversation_agreement: null; crm_confirmed_conversion: null };
     can: { export: boolean };
 }
+
+/* Этап F (каркас) — источники звонков. */
+
+export interface SourceField {
+    key: string;
+    label: string;
+    type: 'select' | 'number' | 'text';
+    required?: boolean;
+    options?: Record<string, string>;
+    hint?: string;
+}
+
+export interface SourceDriver {
+    code: string;
+    name: string;
+    available: boolean;
+    description: string;
+    capabilities: { pull: boolean; push: boolean; recordings: boolean } | null;
+    fields: SourceField[];
+}
+
+export interface SourceConnectionSummary {
+    id: number;
+    name: string;
+    driver: string;
+    driver_name: string;
+    driver_available: boolean;
+    company: { id: number; name: string };
+    is_enabled: boolean;
+    sync_interval_minutes: number;
+    last_sync_at: string | null;
+    last_success_at: string | null;
+    last_error: string | null;
+}
+
+export interface SourceSyncRun {
+    id: number;
+    trigger: 'schedule' | 'manual' | 'webhook';
+    status: 'running' | 'succeeded' | 'partial' | 'failed';
+    fetched: number;
+    created: number;
+    duplicates: number;
+    without_recording: number;
+    failed: number;
+    error_message: string | null;
+    started_at: string;
+    finished_at: string | null;
+}
+
+export interface SourceConnectionDetail extends SourceConnectionSummary {
+    dealership_id: number | null;
+    department_id: number | null;
+    settings: Record<string, string | number | null>;
+    lock_version: number;
+    cursor: string | null;
+    has_secret: boolean;
+    secret_set_at: string | null;
+    capabilities: SourceDriver['capabilities'];
+    fields: SourceField[];
+    webhook: { url: string; has_secret: boolean } | null;
+    runs: SourceSyncRun[];
+}
+
+export interface SourceEventItem {
+    id: number;
+    channel: 'pull' | 'push';
+    external_id: string | null;
+    status: 'pending' | 'imported' | 'duplicate' | 'without_recording' | 'failed';
+    call_id: number | null;
+    error_message: string | null;
+    received_at: string;
+}

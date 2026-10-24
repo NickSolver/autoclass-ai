@@ -5,6 +5,10 @@ import type {
     CriterionChange,
     ReviewItem,
     PageMeta,
+    SourceConnectionDetail,
+    SourceConnectionSummary,
+    SourceDriver,
+    SourceEventItem,
     ChecklistChange,
     ChecklistDetail,
     ChecklistSummary,
@@ -249,4 +253,18 @@ export const appealsApi = {
 export const analyticsApi = {
     report: (query?: Query) => get<AnalyticsReport>('/analytics', query),
     exportUrl: (query: Query) => `/api/v1/analytics/export?${new URLSearchParams(Object.entries(clean(query)).map(([k, v]) => [k, String(v)])).toString()}`,
+};
+
+export const sourcesApi = {
+    drivers: () => get<{ data: SourceDriver[] }>('/source-drivers'),
+    list: () => get<{ data: SourceConnectionSummary[] }>('/source-connections'),
+    show: (id: number) => get<SourceConnectionDetail>(`/source-connections/${id}`),
+    create: (body: Payload) => post<SourceConnectionDetail>('/source-connections', body),
+    update: (id: number, body: Payload) => patch<SourceConnectionDetail>(`/source-connections/${id}`, body),
+    /** Секрет уходит только на сервер и обратно не возвращается. */
+    setSecret: (id: number, secret: string | null) => put<SourceConnectionDetail>(`/source-connections/${id}/secret`, { secret }),
+    regenerateWebhookSecret: (id: number) => post<{ webhook_secret: string; connection: SourceConnectionDetail }>(`/source-connections/${id}/webhook-secret`),
+    test: (id: number) => post<{ ok: boolean; message: string }>(`/source-connections/${id}/test`),
+    sync: (id: number) => post<{ message: string; connection: SourceConnectionDetail }>(`/source-connections/${id}/sync`),
+    events: (id: number, query?: Query) => get<Page<SourceEventItem>>(`/source-connections/${id}/events`, query),
 };

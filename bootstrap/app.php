@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\SourceWebhookController;
 use App\Http\Middleware\EnsureMfaPassed;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsureUserIsActive;
@@ -22,6 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         // API для SPA работает на группе web: сессия в БД + CSRF (ADR-0001, п. 7).
         then: function () {
+            // Приём событий источников: без сессии и CSRF — токен в адресе и подпись адаптера (ADR-0008).
+            Route::post('api/v1/source-webhooks/{token}', SourceWebhookController::class)
+                ->where('token', '[A-Za-z0-9]{48}')
+                ->middleware('throttle:source-webhooks')
+                ->name('api.v1.source-webhooks');
             Route::middleware('web')
                 ->prefix('api/v1')
                 ->name('api.v1.')

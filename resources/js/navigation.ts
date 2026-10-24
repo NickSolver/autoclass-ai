@@ -31,7 +31,6 @@ export interface UnavailableModule {
 
 /** Описание недоступных модулей — по разделам ТЗ, без обещаний сроков. */
 export const unavailableModules: Record<string, UnavailableModule> = {
-    integrations: { title: 'Источники звонков', stage: 'F', description: 'Подключаемые модули Calltouch и телефонии «Лягушка». Подключаются после получения документации и тестового доступа.' },
 };
 
 export const navigation: NavSection[] = [
@@ -51,7 +50,7 @@ export const navigation: NavSection[] = [
         items: [
             { label: 'Бизнес-процессы', to: '/workflows', permissions: ['workflow.design', 'workflow.publish'], icon: 'flow' },
             { label: 'Чек-листы', to: '/checklists', permissions: ['checklist.design', 'checklist.publish'], icon: 'checklist' },
-            { label: 'Источники звонков', to: '/modules/integrations', permissions: ['integrations.manage'], stage: 'F', icon: 'plug' },
+            { label: 'Источники звонков', to: '/sources', permissions: ['integrations.manage'], icon: 'plug' },
             { label: 'ИИ-провайдеры', to: '/ai-providers', permissions: ['ai.manage', 'ai.logs.view'], icon: 'cpu' },
         ],
     },

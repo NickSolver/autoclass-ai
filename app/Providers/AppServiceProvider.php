@@ -55,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
         // Загрузка записей: пакет до calls.max_files_per_batch файлов, с запасом на повторы.
         RateLimiter::for('uploads', fn (Request $r) => Limit::perMinute(120)->by('uploads:'.$byUserOrIp($r)));
         RateLimiter::for('mfa', fn (Request $r) => Limit::perMinute(30)->by('mfa:'.$byUserOrIp($r)));
+        RateLimiter::for('source-webhooks', fn (Request $r) => Limit::perMinute(120)->by('srcwh:'.$r->ip()));
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);

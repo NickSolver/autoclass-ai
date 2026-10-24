@@ -52,6 +52,8 @@ const routes: RouteRecordRaw[] = [
     { path: '/review', name: 'review', component: () => import('@/views/review/ReviewQueueView.vue'), meta: { title: 'Ручные проверки', permissions: ['review.assign', 'review.resolve'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Ручные проверки' }] } },
     { path: '/appeals', name: 'appeals', component: () => import('@/views/review/AppealsView.vue'), meta: { title: 'Апелляции', permissions: ['appeal.create', 'appeal.resolve', 'review.assign'], breadcrumbs: [{ label: 'Звонки', to: '/calls' }, { label: 'Апелляции' }] } },
     { path: '/analytics', name: 'analytics', component: () => import('@/views/analytics/AnalyticsView.vue'), meta: { title: 'Аналитика', permissions: ['analytics.view'], breadcrumbs: [{ label: 'Аналитика' }] } },
+    { path: '/sources', name: 'sources', component: () => import('@/views/sources/SourcesView.vue'), meta: { title: 'Источники звонков', permissions: ['integrations.manage'], breadcrumbs: [setup, { label: 'Источники звонков' }] } },
+    { path: '/sources/:id(\\d+)', name: 'source', component: () => import('@/views/sources/SourceDetailView.vue'), props: (r) => ({ id: Number(r.params.id) }), meta: { title: 'Источник звонков', permissions: ['integrations.manage'], breadcrumbs: [setup, { label: 'Источники звонков', to: '/sources' }, { label: 'Подключение' }] } },
     { path: '/ai-providers', name: 'ai-providers', component: () => import('@/views/ai/AiProvidersView.vue'), meta: { title: 'ИИ-провайдеры', permissions: ['ai.manage', 'ai.logs.view'], breadcrumbs: [setup, { label: 'ИИ-провайдеры' }] } },
 
     { path: '/modules/:module', name: 'module', component: () => import('@/views/ModuleUnavailableView.vue'), props: true, meta: { title: 'Модуль в разработке' } },

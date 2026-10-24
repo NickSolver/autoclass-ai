@@ -32,6 +32,8 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $uuid
  * @property int $source_id
+ * @property ?int $source_connection_id
+ * @property ?string $client_phone_masked
  * @property string $external_id
  * @property CallDirection $direction
  * @property ?Carbon $started_at
@@ -74,7 +76,7 @@ class Call extends Model
     use HasFactory, HasOrgScope;
 
     protected $fillable = [
-        'uuid', 'source_id', 'external_id', 'direction', 'started_at', 'started_at_tz', 'duration_ms',
+        'uuid', 'source_id', 'source_connection_id', 'external_id', 'client_phone_masked', 'direction', 'started_at', 'started_at_tz', 'duration_ms',
         'group_id', 'company_id', 'dealership_id', 'department_id', 'employee_id',
         'attribution_status', 'org_snapshot', 'note', 'status', 'status_changed_at', 'last_error',
         'excluded_reason', 'excluded_at', 'excluded_by', 'duplicate_of_call_id', 'uploaded_by',

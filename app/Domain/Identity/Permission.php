@@ -128,7 +128,7 @@ enum Permission: string
                 self::TranscriptView, self::EvaluationView, self::AiManage, self::AiLogsView,
                 self::WorkflowDesign, self::WorkflowPublish, self::ChecklistDesign, self::ChecklistPublish,
                 self::TranscriptEdit, self::EvaluationOverride, self::EvaluationFinalize, self::ReviewAssign, self::ReviewResolve,
-                self::AppealCreate, self::AppealResolve, self::AnalyticsView, self::AnalyticsExport,
+                self::AppealCreate, self::AppealResolve, self::AnalyticsView, self::AnalyticsExport, self::IntegrationsManage,
             ], true);
     }
 }

@@ -11,6 +11,7 @@ use App\Domain\Organization\Models\CompanyGroup;
 use App\Domain\Organization\Models\Dealership;
 use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\Employee;
+use App\Domain\Sources\Models\SourceConnection;
 use App\Domain\Workflow\Models\WorkflowDefinition;
 use App\Http\Controllers\Api\V1\AiProviderCallController;
 use App\Http\Controllers\Api\V1\AiProviderController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\ReviewController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SessionController;
+use App\Http\Controllers\Api\V1\SourceConnectionController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserRoleScopeController;
 use App\Http\Controllers\Api\V1\WorkflowController;
@@ -67,6 +69,7 @@ Route::bind('workflow', fn (string $value) => WorkflowDefinition::query()->findO
 Route::bind('workflowVersion', fn (string $value) => request()->route('workflow')->versions()->findOrFail((int) $value));
 Route::bind('assignment', fn (string $value) => request()->route('employee')->assignments()->findOrFail((int) $value));
 Route::bind('roleScope', fn (string $value) => request()->route('user')->roleScopes()->findOrFail((int) $value));
+Route::bind('sourceConnection', $visible(SourceConnection::class, Permission::IntegrationsManage));
 Route::bind('review', fn (string $value) => ReviewController::visible(request()->user())->findOrFail((int) $value));
 Route::bind('appeal', fn (string $value) => AppealController::visible(request()->user())->findOrFail((int) $value));
 
@@ -172,6 +175,18 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::get('analytics/export', [AnalyticsController::class, 'export'])->middleware('throttle:mfa')->name('analytics.export');
+
+        // Источники звонков (этап F, каркас). Секреты — с повторным кодом MFA.
+        Route::get('source-drivers', [SourceConnectionController::class, 'drivers'])->name('source-drivers.index');
+        Route::get('source-connections', [SourceConnectionController::class, 'index'])->name('source-connections.index');
+        Route::post('source-connections', [SourceConnectionController::class, 'store'])->name('source-connections.store');
+        Route::get('source-connections/{sourceConnection}', [SourceConnectionController::class, 'show'])->name('source-connections.show');
+        Route::patch('source-connections/{sourceConnection}', [SourceConnectionController::class, 'update'])->name('source-connections.update');
+        Route::put('source-connections/{sourceConnection}/secret', [SourceConnectionController::class, 'setSecret'])->middleware('mfa.recent')->name('source-connections.secret');
+        Route::post('source-connections/{sourceConnection}/webhook-secret', [SourceConnectionController::class, 'regenerateWebhookSecret'])->middleware('mfa.recent')->name('source-connections.webhook-secret');
+        Route::post('source-connections/{sourceConnection}/test', [SourceConnectionController::class, 'test'])->middleware('throttle:mfa')->name('source-connections.test');
+        Route::post('source-connections/{sourceConnection}/sync', [SourceConnectionController::class, 'sync'])->middleware('throttle:mfa')->name('source-connections.sync');
+        Route::get('source-connections/{sourceConnection}/events', [SourceConnectionController::class, 'events'])->name('source-connections.events');
 
         // Ручная проверка и апелляции (этап E).
         Route::post('calls/{call}/transcript/corrections', [CallAnalysisController::class, 'correctTranscript'])->name('calls.transcript.correct');
